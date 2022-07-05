@@ -101,5 +101,8 @@ ENV/
 # mypy
 .mypy_cache/
 
+.gitignore
 *~
 *~
+src/*~
+src/.gitignor~
