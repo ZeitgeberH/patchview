@@ -1,0 +1,26 @@
+name: patchviewPy3
+channels:
+  - defaults
+dependencies:
+  - pip=21.0.1=py38haa95532_0
+  - python=3.8.12=h6244533_0
+  - pip:
+    - pandas
+    - matplotlib
+    - scikit-image
+    - colorcet
+    - Pillow
+    - tqdm
+    - pyqtwebengine
+    - PySide2==5.15.2
+    - PyQT5==5.12
+    - pyqtgraph==0.12.4
+    - PyOpenGL
+    - PyOpenGL_accelerate
+    - cython
+    - neo
+    - pylru==1.2.1
+    - h5py==3.7.0
+    - joblib
+    - future==0.18.2
+    - pyYAML==6.0
