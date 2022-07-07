@@ -1,9 +1,10 @@
-graft src
+graft patchview
 include CONTRIBUTORS.rst
 include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 inlcude enviroment.yml
+include requirements.txt
 include README.rst
 
 recursive-include tests *

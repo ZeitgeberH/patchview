@@ -11,6 +11,7 @@ Welcome to PatchView's documentation!
    modules
    contributing
    contributors
+   resources
    history
 
 Indices and tables

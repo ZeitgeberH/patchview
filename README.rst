@@ -19,7 +19,8 @@ PatchView
 
 
 
-Patchview perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis, synatpic connection detection, morphorlocial analysis and more.
+Patchview perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis,
+synatpic connection detection, morphorlocial analysis and more.
 
 
 * Free software: BSD license
@@ -28,14 +29,13 @@ Patchview perform data analysis and visualization on whole-cell recording data, 
 
 Features
 --------
+Patchview integrates multiple open-source tools (see attribution page) and wrap them using an intuitive graphic user interface (GUI).
+Thus users can perform most analysis quickly for the data collected in a typical Patch-seq experiment without installing Python and these tools or writting any Python scripts.
 
-* TODO
 
-Credits
--------
+* Importing Heka patchmaster data and Axon file data
+* Visualizing single and multiple traces with Zoom-in, Pan operations
+* Performing analysis on actiona potential detection, firing pattern analysis
+* Mini-event detection
+* Visualizing morphorlocial reconstruction files from Neurolucida
 
-This package was created with Cookiecutter_ and the `pyOpenSci/cookiecutter-pyopensci`_ project template, based off `audreyr/cookiecutter-pypackage`_.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`pyOpenSci/cookiecutter-pyopensci`: https://github.com/pyOpenSci/cookiecutter-pyopensci
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage

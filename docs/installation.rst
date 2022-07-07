@@ -1,20 +1,45 @@
 .. highlight:: shell
 
-============
-Installation
-============
+=====================
+Installation & Usage
+=====================
+There are three ways to use Patchview
 
+Stand-along Windows App
+-----------------------
 
-Stable release
+If your operating system is Windows 10, PatchView has a prepackaged app using `Pyinstaller`_.  
+You can download the zip file from the release page. After unzipped
+it into a folder, you can directly double click the excutable file to start the app. No
+python installation is needed. 
+To remove the app ,just delete the whole folder.
+
+Pip install
 --------------
 
-To install PatchView, run this command in your terminal:
+To install PatchView via `pip`_, We recommand create a virtual python enviroment first.
+
+
+If you use conda, you can do this by:
+
+.. code-block:: console
+    
+    $  conda create -n patchview python=3.8
+
+Note: PatchView require Python>=3.8
+
+After activating your virtual enviroment, run this command in your terminal:
 
 .. code-block:: console
 
     $ pip install patchview
 
-This is the preferred method to install PatchView, as it will always install the most recent stable release.
+This is the preferred method to install PatchView, as it installs script that can launch
+the program at a command line by type
+
+.. code-block:: console
+
+    $ patchview
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -22,6 +47,24 @@ you through the process.
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
+Note: PatchView use PyQt5 as its front-end. Pip installation may have compatible issue which may cause the following errors when launch
+the GUI::
+
+    qt.qpa.plugin: Could not find the Qt platform plugin "windows" in "". This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+
+If this happens, please uninstall PyQt5, PyQt5-sip, pyqtwebengine by:
+
+.. code-block:: console
+
+    $ pip uninstall pyqt5 pyqt5-qt5 pyqtwebengine-qt5 pyqt5-sip
+
+then reinstall them via:
+
+.. code-block:: console
+
+    $ pip install pyqt5 pyqtwebengine pyqt5-sip
+
+If this does not resolve the issue, please open a PatchView's github issue.
 
 From sources
 ------------
@@ -40,12 +83,20 @@ Or download the `tarball`_:
 
     $ curl  -OL https://github.com/zeitgeberH/patchview/tarball/master
 
-Once you have a copy of the source, you can install it with:
+Once you have a copy of the source, use Conda to create an virtual enviroment:
 
 .. code-block:: console
 
-    $ python setup.py install
+    $ conda env create -f environment.yml
 
+then activate the enviroment and run:
 
+.. code-block:: console
+
+    $ conda activate patchviewPy3
+    
+    $ python patchview
+    
+.. _Pyinstaller: https://pyinstaller.org/en/stable/   
 .. _Github repo: https://github.com/zeitgeberH/patchview
 .. _tarball: https://github.com/zeitgeberH/patchview/tarball/master
