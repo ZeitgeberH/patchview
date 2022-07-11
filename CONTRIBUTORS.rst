@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Ming Hu @ Baylor College of Medicine
+* `@ZeitgeberH <https://github.com/ZeitgeberH>`_
 
 Contributors
 ----------------
@@ -23,6 +23,7 @@ by Python communities. This includes:
 
 - heka_reader_ for the original HEKA PatchMaster parser in Python
 
+- IPFX_  a Python package for computing intrinsic cell features from electrophysiology data
 - NeuroM_ for parsing Neurolucida file (.ASC)
 
 - pyinstaller_ for packaging
@@ -34,4 +35,5 @@ by Python communities. This includes:
 .. _pandas: https://pandas.pydata.org/
 .. _heka_reader: https://github.com/campagnola/heka_reader
 .. _pyinstaller: https://www.pyinstaller.org/
+.. _IPFX: https://github.com/AllenInstitute/ipfx
 .. _NeuroM: https://github.com/BlueBrain/NeuroM/

@@ -12,13 +12,14 @@ If your operating system is Windows 10, PatchView has a prepackaged app using `P
 You can download the zip file from the release page. After unzipped
 it into a folder, you can directly double click the excutable file to start the app. No
 python installation is needed. 
-To remove the app ,just delete the whole folder.
+To remove the app, just delete the whole folder.
 
 Pip install
 --------------
 
-To install PatchView via `pip`_, We recommand create a virtual python enviroment first.
-
+To install PatchView via `pip`_, We recommand creating a virtual python enviroment first.
+If you don't have `pip`_ installed, this `Python installation guide`_ can guide
+you through the process.
 
 If you use conda, you can do this by:
 
@@ -35,14 +36,23 @@ After activating your virtual enviroment, run this command in your terminal:
     $ pip install patchview
 
 This is the preferred method to install PatchView, as it installs script that can launch
-the program at a command line by type
+the GUI program at a command line by type
 
 .. code-block:: console
 
-    $ patchview
+    (patchview) $ patchview
 
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
+or in a python enviroment:
+
+.. code-block:: python
+
+    >>> import patchview
+
+To launch the GUI, type:
+
+.. code-block:: python
+
+    >>> patchview.pvGUI()
 
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
@@ -95,7 +105,7 @@ then activate the enviroment and run:
 
     $ conda activate patchviewPy3
     
-    $ python patchview
+    $ python setup.py install
     
 .. _Pyinstaller: https://pyinstaller.org/en/stable/   
 .. _Github repo: https://github.com/zeitgeberH/patchview

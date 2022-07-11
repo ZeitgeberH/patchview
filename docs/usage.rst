@@ -1,9 +1,11 @@
 ============
 Introduction
 ============
+Patchview has multiple modules that could be accessed from the tabs in the main window.
+Each tab host one module. Below we introduce the functions of each module.
 
-Electrophysiology data
-========================================
+**Quick browser**
+-----------------
 Due to the complexity of data generated from a patch-clamp experiment, we need lots of visualization to 
 help us navigate and make sense of the data, especially during the data exploration phase.
 Following are examples of visualizations that PatchView can do. 
@@ -15,7 +17,7 @@ Following are examples of visualizations that PatchView can do.
   buildin plotwidget, thus all default operations (zoom-in, pan etc. ) are supported.
 
 *Ploting single trace*
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Top panel: voltage for a sweep. Bottom panel: stimulus input. Same conventions for all related plots below. 
 
 .. image:: resources/images/pasedavian_001_trace.png
@@ -38,10 +40,60 @@ match with that of voltage traces.
     :width: 800
     :alt: Alternative text
 
+**Firing Pattern analysis**
+----------------------------
+*Detect spikes*
+^^^^^^^^^^^^^^^^^
+PatchView currently utilize an adapted early version of `IPFX`_  package to detect spikes and extract relevant features of the cell from those spikes and hyperpolarized traces.
+For more, see `IPFX`_ page from Allen Brain Institute.
 
-Morphorlory data
-========================================
+For each spike, PatchView plots its phase plot (dV/dt verse V) (Shown in top right corner), spike widths, peak hight (bottom left corner).
 
+.. image:: resources/images/FP_trace.png
+    :width: 800
+    :alt: Alternative text
+
+.. _IPFX: https://github.com/AllenInstitute/ipfx
+
+PatchView extract all these features and present the results in three seperate tables: by Sweep, by Spikes, and by Cells.
+IPFX provide some parameters for its detection procedures. These parameters can be adjusted in the *spike detection* tab
+on the left side.
+
+.. image:: resources/images/FP_stats.png
+    :width: 800
+    :alt: Alternative text
+
+
+**Monosynaptic connection detection**
+-------------------------------------------
+For Multi-patch experiment, multiple (up to 12) neurons were recorded simutaneouly. In each sweep, one the neuron were either electrically 
+or optically stimulated above its firing threshold. A postsynaptic event may be observed in short latency if it receive monosynaptic connections
+from the stimulated neuron.
+
+Detected synatpic network is visualized using `NetworkX <https://networkx.org/>`_
+
+.. image:: resources/images/connections.png
+    :width: 800
+    :alt: Alternative text
+
+**Postsynaptic event (PSP/PSC) analysis**
+-------------------------------------------
+A deconvolution-based (Pernia-Andrade et al.) method is implemented to detect mini event.
+
+* Pernia-Andrade, A. J. et al. A deconvolution-based method with high sensitivity and temporal resolution for detection of spontaneous synaptic currents in vitro and in vivo. Biophys J 103, 1429–1439 (2012)
+
+We provide a rich GUI to specify template, adjust parameters of detection algorithms,  visual inspection of events and manul curating. A table is generated with each event's information.
+User can inspect each event, either by clicing item in the table or quickly browsering using arrow key. 
+User can also flag individual event as False before exporting the whole table. 
+
+.. image:: resources/images/event_detec.png
+    :width: 800
+    :alt: Alternative text
+
+
+**Morphorlogical data**
+---------------------------
+Internally, PatchViewer utilize an adapted version of `NeuroM <https://github.com/BlueBrain/NeuroM>`_  from The Blue Brain Project for tree recontruction and associated analysis. 
 - Parsing Neurolucida file (.asc) and rendering the tree structure (both 2D and 3D).
 
 *Plotting soma and neurites for a single neuron*

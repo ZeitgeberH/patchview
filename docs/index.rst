@@ -8,7 +8,6 @@ Welcome to PatchView's documentation!
    readme
    installation
    usage
-   modules
    contributing
    contributors
    resources
