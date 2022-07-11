@@ -4,9 +4,6 @@ PatchView
 .. image:: https://img.shields.io/pypi/v/patchview.svg
         :target: https://pypi.python.org/pypi/patchview
 
-.. image:: https://codecov.io/gh/zeitgeberH/patchview/branch/master/graph/badge.svg
-        :target: https://codecov.io/gh/zeitgeberH/patchview
-
 .. image:: https://readthedocs.org/projects/patchview/badge/?version=latest
         :target: https://patchview.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
