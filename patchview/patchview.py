@@ -55,8 +55,7 @@ from matplotlib import image as ReadImage
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
-__version__ = "0.2"
-
+__version__ = "0.1"
 
 class MainWindow(QtWidgets.QMainWindow):
     """

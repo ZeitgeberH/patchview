@@ -4,12 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Patchview"
-description = "whole cell data analysis"
+description = "PatchView perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis,
+synatpic connection detection, morphological analysis and more"
 readme = "README.rst"
 requires-python = ">=3.8"
 license = {text = "BSD 3-Clause License"}
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+     "Programming Language :: Python :: 3.9",
+      "Programming Language :: Python :: 3.10",
 ]
 dynamic = ["version"]
 

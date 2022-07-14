@@ -1,7 +1,7 @@
 ============
 Tutorials
 ============
-We walk through steps to use Patchview.
+Here, we walk through the main steps to use Patchview.
 
 **Loading data**
 -----------------
@@ -31,6 +31,26 @@ in a multi-patch experiment test for firing pattern, connection and spontaneous 
 a unique label for each protocol: for example, 'FP' for firing pattern; 'EPSP' for excitatory post synaptic potential.
 Patchview would read those labels and sort each recorded series into corresponding tabs shown in the first middle panel.
 Currently three tabs are available: "Firing pattern", "Connection", "Spontaneous".
+
+**Interactive with figure planel**
+
+**Left button**:  Left mouse button have two modes of interaction: Rect mode |mouseMode1| and Pan mode |mouseMode2|. 
+
+* Rect mode: Left click and drag a rectangle around the region of interest to zoom in.
+* Pan mode:  Interacts with items in the scene (select/move objects, etc). If there are no movable objects under the mouse cursor, then dragging with the left button will pan the scene instead. 
+
+Rect mode is default. Click the corresponding icon in the toolbar (far right column in GUI) to switch between
+those two modes.
+
+**Right Button**:
+
+* Right button drag: Scales the scene. Dragging left/right scales horizontally; dragging up/down scales vertically (although some scenes will have their x/y scales locked together). If there are x/y axes visible in the scene, then right-dragging over the axis will _only_ affect that axis. 
+* Right button clicks: Clicking the right button in most cases will show a context menu with a variety of options depending on the object(s) under the mouse cursor. 
+
+.. |mouseMode1| image:: resources/images/rectangle.png
+    :height: 25px
+.. |mouseMode2| image:: resources/images/navigation.png
+    :height: 25px
 
 **Firing Pattern analysis**
 ----------------------------

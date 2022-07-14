@@ -32,5 +32,5 @@ these tools or writting any Python scripts.
 * Performing analysis on actiona potential detection, firing pattern analysis
 * Synaptic connection analysis
 * Mini-event analysis
-* Visualizing morphorlocial reconstruction files from Neurolucida
+* Visualizing morphological reconstruction files from Neurolucida
 

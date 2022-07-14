@@ -5,14 +5,18 @@ Installation & Usage
 =====================
 There are three ways to use Patchview
 
-Stand-along Windows App
+Stand-along App
 -----------------------
 
 If your operating system is Windows 10, PatchView has a prepackaged app using `Pyinstaller`_.  
 You can download the zip file from the release page. After unzipped
 it into a folder, you can directly double click the excutable file to start the app. No
 python installation is needed. 
+
 To remove the app, just delete the whole folder.
+
+Note: since Pyinstaller is cross-platform, it is possible to package Patchview for other platform, Mac or Linux.
+We have not try these options yet. Contributions are welcome!
 
 Pip install
 --------------
