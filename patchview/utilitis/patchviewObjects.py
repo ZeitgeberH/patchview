@@ -594,6 +594,12 @@ class PulView(pg.QtGui.QTreeWidget):
         )  # self.add_clicked)
         self.myMenu.addAction(self.fpAnAction)
 
+        self.eventAnAction = pg.QtGui.QAction("Spontaneous event analysis")
+        self.eventAnAction.triggered.connect(
+            self.frame.eventDetectionAction_clicked
+        )  # self.add_clicked)
+        self.myMenu.addAction(self.eventAnAction)
+
         # self.concatenatingAction = pg.QtGui.QAction(" concatenating sweeps")
         # self.concatenatingAction.triggered.connect(self.concatenatingSweeps_clicked)
         # self.myMenu.addAction(self.concatenatingAction)

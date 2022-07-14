@@ -19,7 +19,7 @@ dependencies:
     - PyOpenGL_accelerate
     - spyder
     - cython
-    - pyinstaller
+    - pyinstaller==4.8
     - joblib
     - neo
     - pylru==1.2.1

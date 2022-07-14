@@ -9,6 +9,9 @@ include README.rst
 
 recursive-include tests *
 recursive-exclude .github
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude patchview*
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

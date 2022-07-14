@@ -16,14 +16,14 @@ PatchView perform data analysis and visualization on whole-cell recording data, 
 synatpic connection detection, morphological analysis and more.
 
 
-* Free software: BSD license
+* Free software: BSD 3-Clause license
 * Documentation: https://patchview.readthedocs.io.
 
 
 Features
 --------
 PatchView integrates multiple open-source tools (see credit page) and wrap them using an intuitive graphic user interface (GUI).
-Thus users can perform most analysis quickly for the data collected in a typical Patch-seq experiment without installing Python and 
+Thus users can perform most analysis quickly for the data collected in a typical patch-clamp experiment without installing Python and 
 these tools or writting any Python scripts.
 
 

@@ -7,9 +7,10 @@ Welcome to PatchView's documentation!
 
    readme
    installation
-   usage
+   introduction
+   tutorials
    contributing
-   contributors
+   credits
    resources
    history
 

@@ -72,7 +72,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_mainWindow()
         self.setWindowTitle("PatchViewer")
         self.setWindowIcon(
-            pg.QtGui.QIcon(os.path.join(patchview_dir, "PatchViewer.ico"))
+            pg.QtGui.QIcon(os.path.join(patchview_dir, "Data", "icons", "PatchViewer.ico"))
+             
         )
         #        self.resize(1200, 800)
         self.showMaximized()
