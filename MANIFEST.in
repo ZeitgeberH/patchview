@@ -6,6 +6,7 @@ include LICENSE
 inlcude enviroment.yml
 include requirements.txt
 include README.rst
+exclude .gitignore
 
 recursive-include tests *
 recursive-exclude .github

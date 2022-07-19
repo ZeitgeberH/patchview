@@ -16,6 +16,10 @@ def loadYAML(filename):
         data = yaml.load(f, Loader=yaml.FullLoader)
         return data
 
+def saveYAML(filename, data):
+    """open yaml file for parameters"""
+    with open(filename) as f:
+        yaml.dump(data, filename, default_flow_style=True)
 
 def bandPass_signal(data, fs, highCutOff=None, filter_option=0):
     if filter_option == 0:  ## default fourth order Bessel-Thomson filter

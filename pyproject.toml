@@ -4,8 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Patchview"
-description = "PatchView perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis,
-synatpic connection detection, morphological analysis and more"
+description = "GUI software for data analysis and visualization on whole-cell recording data"
 readme = "README.rst"
 requires-python = ">=3.8"
 license = {text = "BSD 3-Clause License"}

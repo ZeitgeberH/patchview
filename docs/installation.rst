@@ -1,8 +1,8 @@
 .. highlight:: shell
 
-=====================
-Installation & Usage
-=====================
+==============
+Get started
+==============
 There are three ways to use Patchview
 
 Stand-along App
@@ -114,3 +114,21 @@ then activate the enviroment and run:
 .. _Pyinstaller: https://pyinstaller.org/en/stable/   
 .. _Github repo: https://github.com/zeitgeberH/patchview
 .. _tarball: https://github.com/zeitgeberH/patchview/tarball/master
+
+
+Configuration
+----------------
+
+Patchview use a Yaml file for its basic configuration.
+
+* If you use the app version, it is located in the **patchview\\Data\\patchview.yaml** of the app folder.
+* If you install it via Pip or from source, it is located in **PATH-OF-YOUR-ENVIROMENT\\Lib\\site-packages\\Patchview-xx-py3.x.egg\\patchview\\Data\\patchview.yaml**.
+
+Open **patchview.yaml** with any text editor.  
+
+* **RootDir** is the root node for PatchView to search files. Leave it empty (**''**) if 
+you want to include all drives in computer. 
+* **Protocols** are labels you used for series during recording. There are four default categories that Patchview uses
+to sort recorded series. Add any labels in the corresponding category if it is not already in the list.
+
+After saving your changes, close the app and restart it.

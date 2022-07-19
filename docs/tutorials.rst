@@ -15,6 +15,7 @@ left panel. Click the arrow at start of the name to expand.
 
 *import multiple files simutaneouly*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 **Note**: this method assume that you follow a naming convention: date-slice#-cell#. For example, 20220202s1c1.dat, means
 this file was recorded on date 2022/02/02 from slice 1 and cell 1. 
 
@@ -33,6 +34,7 @@ Patchview would read those labels and sort each recorded series into correspondi
 Currently three tabs are available: "Firing pattern", "Connection", "Spontaneous".
 
 **Interactive with figure planel**
+-------------------------------------
 
 **Left button**:  Left mouse button have two modes of interaction: Rect mode |mouseMode1| and Pan mode |mouseMode2|. 
 
@@ -130,6 +132,6 @@ in stead of the plot widget's build-in save button.
 .. |tree| image:: resources/images/tree.png
     :height: 25px
 
-.. image:: resources/images/morphor_tree.PNG
+.. image:: resources/images/morphor_tree.png
     :width: 800
     :alt: Alternative text

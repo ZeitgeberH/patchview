@@ -33,6 +33,7 @@ setup(
         'Natural Language :: English',
         "Programming Language :: Python :: 3",
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         "Operating System :: OS Independent",
     ],
     description="Patchview perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis, synatpic connection detection, morphorlocial analysis and more.",

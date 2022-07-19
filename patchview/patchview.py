@@ -1175,6 +1175,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.OptionMenu.addAction(self.OptionAction7)
         self.OptionAction7.setChecked(True)
 
+        # self.OptionAction8= pg.QtGui.QAction(
+        #     "Configuration", self, checkable=False
+        # )
+        # # OptionAction1.setShortcut("Ctrl+a")
+        # self.OptionAction8.triggered.connect(
+        #     self.pvSetting_clicked
+        # )  # self.dvdt2_clicked
+        # self.OptionMenu.addAction(self.OptionAction8)
+
         self.HelpMenu = self.mbar.addMenu("&Help")
         self.HelpAction1 = pg.QtGui.QAction("&Manual")
         # OptionAction1.setShortcut("Ctrl+a")
@@ -1185,6 +1194,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.HelpAction3.setStatusTip("BSD-3")
         self.HelpAction3.triggered.connect(self.License_clicked)
         self.HelpMenu.addAction(self.HelpAction3)
+
+    def pvSetting_clicked(self):
+        DATA_PATH = os.path.join(patchview_dir, "Data", "uis","batchDownloadOptionsDialog.ui")
+        WindowTemplate, TemplateBaseClass = pg.Qt.loadUiType(DATA_PATH)
+        self.bd_dialog  = TemplateBaseClass()
+        self.bd_dialog_form = WindowTemplate()
+        self.bd_dialog_form.setupUi(self.bd_dialog)
+        # self.bd_dialog_form.fileButton.clicked.connect(self.batchGenesFile)
+        # self.bd_dialog_form.buttonBox.clicked.connect(self.buttonBoxResponse)
+        self.bd_dialog.exec_()
 
     def sliceFPView_plot(self):
         print(self.selTreesFP)
@@ -3185,7 +3204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadUserParamters(user)
 
     def loadUserParamters(self, user):
-        DATA_PATH = os.path.join(patchview_dir, "Data", "MH.yaml")
+        DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")
         pars = loadYAML(DATA_PATH)
         parameters = {}
         # parameters['HF'] = pars['Filters']['High cutoff']
