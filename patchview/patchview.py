@@ -3109,13 +3109,14 @@ class MainWindow(QtWidgets.QMainWindow):
         msg.exec_()
 
     def License_clicked(self):
-        with open("./Data/LICENSE.txt") as f:
+        DATA_PATH = os.path.join(patchview_dir, "Data", "LICENSE.txt")
+        with open(DATA_PATH) as f:
             BSD_3 = f.readlines()
         BSD_3b = ""
         for l in BSD_3:
             BSD_3b = BSD_3b + l
         self.showdialog(
-            "This program is under BSD-3 license.\nCopyright (c) 2020-2021, Ming Hu (ming.hu@bcm.edu). All rights reserved.",
+            "This program is under BSD-3 license.\nCopyright (c) 2020-2022, Ming Hu. All rights reserved.",
             BSD_3b,
         )
 
