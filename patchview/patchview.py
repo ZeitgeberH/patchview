@@ -56,7 +56,7 @@ from patchview.utilitis.PVdat2NWB import dat2NWB
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
-__version__ = "0.1"
+__version__ = "0.2.2"
 
 class MainWindow(QtWidgets.QMainWindow):
     """

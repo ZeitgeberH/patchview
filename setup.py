@@ -25,7 +25,7 @@ dev_requirements = []
 
 setup(
     author="Ming Hu",
-    author_email='ming.hu@bcm.edu',
+    author_email='',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: patch-clamp users',
@@ -49,7 +49,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/zeitgeberH/patchview',
-    version='0.1',
+    version='0.2.2',
     zip_safe=False,
     entry_points={
         'gui_scripts': [

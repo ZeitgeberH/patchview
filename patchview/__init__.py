@@ -2,7 +2,7 @@ from . import patchview
 from PyQt5 import QtWidgets
 import sys
 
-__version__ = "0.1"
+__version__ = "0.2.2"
 print("initilizating PatchView. use patchview.pvGUI() to launch the GUI")
 pvApp = QtWidgets.QApplication(sys.argv)
 
