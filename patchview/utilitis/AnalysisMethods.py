@@ -55,7 +55,6 @@ def Bessel_lowpass(fs, highCutOff=None):
         )  # filter kHz -> Hz, then get fraction of Nyquist frequency
     else:
         filt_coeff = highCutOff / (fs / 2.0)
-    #        print(filt_coeff, highCutOff, fs)
     if filt_coeff < 0 or filt_coeff >= 1:
 
         print(
@@ -217,7 +216,6 @@ def calculateConnectionTraces(time, fs, data, stimStartSample):
 
 
 def cleanASCfile(filename):
-
     f_1 = open(filename, "r")
     tempName = filename[:-4] + "_mod.ASC"
     f_2 = open(tempName, "w")

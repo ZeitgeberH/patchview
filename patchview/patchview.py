@@ -51,6 +51,7 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
 from sklearn import linear_model
 from matplotlib import image as ReadImage
+from patchview.utilitis.PVdat2NWB import dat2NWB
 
 warnings.filterwarnings("ignore")
 
@@ -69,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.EphyFeaturesObj = []
         self.spikeTableSavePath = ""
         self.create_mainWindow()
-        self.setWindowTitle("PatchViewer")
+        self.setWindowTitle("PatchView")
         self.setWindowIcon(
             pg.QtGui.QIcon(os.path.join(patchview_dir, "Data", "icons", "PatchViewer.ico"))
              
@@ -3124,7 +3125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         selIdx = sel.index
         if len(selIdx) < 2:
             return
-        nwbObj = XLJdat2NWB(self.currentPulseTree.dat_file, [selIdx[0], selIdx[1]])
+        nwbObj = dat2NWB(self.currentPulseTree.dat_file, [selIdx[0], selIdx[1]])
         return nwbObj
 
     def getSaveFileNameNWB(self):
@@ -3138,13 +3139,12 @@ class MainWindow(QtWidgets.QMainWindow):
         return fileName[0]
 
     def saveNWB_clicked(self):
-        return  ## TODO
-        # fileName = self.getSaveFileNameNWB()
-        # if fileName !='':
-        #     self.nwbObj = self.makeNWBobject()
-        #     if self.nwbObj !=None:
-        #         self.statusBar.showMessage(" " + fileName, 3000)
-        #         self.nwbObj.saveNBF(fileName)
+        fileName = self.getSaveFileNameNWB()
+        if fileName !='':
+            self.nwbObj = self.makeNWBobject()
+            if self.nwbObj !=None:
+                self.statusBar.showMessage(" " + fileName, 3000)
+                self.nwbObj.saveNBF(fileName)
 
     def exit_clicked(self):
         self.reset()
@@ -6148,7 +6148,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dvdt = ephys_ft.calculate_dvdt(v, t, filterHighCutFreq_signal / 1000)
         dvdt1 = np.insert(dvdt, 0, 0)
         if EphysObject._spikes_df.size:
-            peaks = spike_df["peak_index"].to_list()  ## lis tof peak index
+            peaks = spike_df["peak_index"].to_list()  ## list of peak index
             try:
                 maxSPwidth = int(spike_df["width"].max(skipna=True) * sampleRate * 2.5)
             except:
@@ -6587,9 +6587,6 @@ class MainWindow(QtWidgets.QMainWindow):
         plotHandle.autoRange()
         if not xlabelOn:  ## no x labels
             plotHandle.setLabel("bottom", "", units="")
-
-            #            ax=plotHandle.getAxis('bottom')    #This is the trick
-            #            ax.setTicks("")
             plotHandle.showAxis("bottom", False)
         if scaleBarOn:
             scale = pg.ScaleBar(size=0.02, suffix="s")
@@ -6860,7 +6857,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def spike_detection_event(self, param, changes):
         from pathlib import Path
-
         for param, change, data in changes:
             childName = param.name()
             if childName == "Clear all tables":

@@ -10,18 +10,18 @@ Stand-along App
 
 If your operating system is Windows 10, PatchView has a prepackaged app using `Pyinstaller`_.  
 You can download the zip file from the release page. After unzipped
-it into a folder, you can directly double click the excutable file to start the app. No
+it into a folder, you can directly double click the executable file to start the app. No
 python installation is needed. 
 
 To remove the app, just delete the whole folder.
 
-Note: since Pyinstaller is cross-platform, it is possible to package Patchview for other platform, Mac or Linux.
+Note: since Pyinstaller is cross-platform, it is possible to package PatchView for other platform, Mac or Linux.
 We have not try these options yet. Contributions are welcome!
 
 Pip install
 --------------
 
-To install PatchView via `pip`_, We recommand creating a virtual python enviroment first.
+To install PatchView via `pip`_, We recommend creating a virtual python environment first.
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
 
@@ -33,7 +33,7 @@ If you use conda, you can do this by:
 
 Note: PatchView require Python>=3.8
 
-After activating your virtual enviroment, run this command in your terminal:
+After activating your virtual environment, run this command in your terminal:
 
 .. code-block:: console
 
@@ -103,7 +103,7 @@ Once you have a copy of the source, use Conda to create an virtual enviroment:
 
     $ conda env create -f environment.yml
 
-then activate the enviroment and run:
+then activate the environment and run:
 
 .. code-block:: console
 
@@ -119,16 +119,14 @@ then activate the enviroment and run:
 Configuration
 ----------------
 
-Patchview use a Yaml file for its basic configuration.
+PatchView use a Yaml file for its basic configuration.
 
 * If you use the app version, it is located in the **patchview\\Data\\patchview.yaml** of the app folder.
 * If you install it via Pip or from source, it is located in **PATH-OF-YOUR-ENVIROMENT\\Lib\\site-packages\\Patchview-xx-py3.x.egg\\patchview\\Data\\patchview.yaml**.
 
 Open **patchview.yaml** with any text editor.  
 
-* **RootDir** is the root node for PatchView to search files. Leave it empty (**''**) if 
-you want to include all drives in computer. 
-* **Protocols** are labels you used for series during recording. There are four default categories that Patchview uses
-to sort recorded series. Add any labels in the corresponding category if it is not already in the list.
+* **RootDir** is the root node for PatchView to search files. Leave it empty (**''**) if you want to include all drives in computer. 
+* **Protocols** are labels you used for series during recording. There are four default categories that PatchView uses to sort recorded series. Add any labels in the corresponding category if it is not already in the list.
 
 After saving your changes, close the app and restart it.

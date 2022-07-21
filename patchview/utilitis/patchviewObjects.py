@@ -104,19 +104,6 @@ class FileView(QtGui.QTreeView):
         self.doubleClicked.connect(self.on_double_click)
         self.customContextMenuRequested.connect(self.openContextMenu)
 
-    # def importAllDatsFP_clicked(self):
-    #     """ We load all .dat files with current folder.
-    #         And we sort these dat according to their protocols
-    #         And sorted files are presented into each tab!
-    #     """
-    #     self.frame.clearAllTrees()
-    #     datFiles = glob.glob(os.path.join(self.currentPath, '*.dat'))
-    #     print(f'{len(datFiles)} .dat files found')
-    #     Items = []
-    #     for d in datFiles:
-    #         self.currentPath, dat0 = os.path.split(d)
-    #         Items.append(dat0[:-4])
-
     def importAllDats_clicked(self):
         """We load all .dat files with current folder.
         And we sort these dat according to their protocols
@@ -274,31 +261,11 @@ class SelectionView(pg.QtGui.QTreeWidget):
         # self.setHeaderLabels(['Node', 'Label','dat', 'dat_Index'])
         self.setHeaderLabels(["Cell", "File", "Level", "Index"])
         self.setColumnWidth(0, 200)
-        # allow multi selection
-        # self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        # self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        # self.customContextMenuRequested.connect(self.openContextMenu)
-        # bind event
         self.itemSelectionChanged.connect(self.on_selection_changed2)
-        # self.myMenu = QtWidgets.QMenu('Menu', self)
-        # self.addFileAction = pg.QtGui.QAction("Remove this .dat file")
-        # self.addFileAction.triggered.connect(self.remove_clicked)
-        # self.myMenu.addAction(self.addFileAction)
+
 
     def openContextMenu(self, index):
         self.myMenu.exec_(QtGui.QCursor.pos())
-
-    # def remove_clicked(self):
-    #     #self.frame.add_selectedDatFile(self.currentFile)
-    #     print('Removing '+self.dat_file)
-    # get file from index
-    #         file_path = self.currentFile
-    #         self.frame.root, f = os.path.split(file_path)
-    # #        os.chdir(self.frame.root)
-    #         # check extension
-    #         _, ext = os.path.splitext(file_path)
-    #         if ext == '.dat':
-    #             self.frame.update_selectView(file_path)
 
     def update_treeSeries(self, root_item, index):
         """
@@ -422,15 +389,6 @@ class SelectionView(pg.QtGui.QTreeWidget):
                 item.index = index
                 for i in range(len(node.children)):
                     self.update_tree_recursive(item, index + [i])
-        # elif len(index)==3: ## at sweep level
-        #     if self.frame.parameters['Protocols']['This serie']['Type'] == 'Spontaneous':
-        #         if index[2]==0: ## only add the first sweep. As we will concatenate all sweeps
-        #             root_item.addChild(item)
-        #             item.node = node
-        #             item.index = index
-        #             for i in range(len(node.children)):
-        #                 self.update_tree_recursive(item, index + [i])
-
         else:
             root_item.addChild(item)
             item.node = node
@@ -458,21 +416,6 @@ class SelectionView(pg.QtGui.QTreeWidget):
             currentDatFilePath = os.path.join(self.currentPath, currentDatFile)
             print(currentDatFilePath)
             self.frame.update_pul(currentDatFilePath, dat_index=dat_index, ext=".dat")
-            # self.frame.currentPulseTree =
-        # pdb.set_trace()
-        # self.frame.update_trace_plot_selectionTree()
-        # bundle = self.bundleGroup[selected.text(2)]
-
-        # self.frame.update_pul(currentDatFile)
-
-        # indices = []
-        # ### for muliple selection
-        # index = selected.index
-        # self.frame.checkSeriesType(selected)
-        # if len(index) == 4: ## grab series level of data
-        #     indices.append(index)
-        # self.indices = indices
-        # self.frame.update_trace_plot_selectionTree()
 
     def on_selection_changed(self):
         """
@@ -600,10 +543,6 @@ class PulView(pg.QtGui.QTreeWidget):
         )  # self.add_clicked)
         self.myMenu.addAction(self.eventAnAction)
 
-        # self.concatenatingAction = pg.QtGui.QAction(" concatenating sweeps")
-        # self.concatenatingAction.triggered.connect(self.concatenatingSweeps_clicked)
-        # self.myMenu.addAction(self.concatenatingAction)
-
     def concatenatingSweeps_clicked(self):
         print(self.indices)
         self.add_clicked()
@@ -668,11 +607,6 @@ class PulView(pg.QtGui.QTreeWidget):
             item.node = node
             item.index = index
 
-            # print(self.seriesNode)
-            # if len(index) == 3:
-            #     self.sweepCount +=1
-            # elif len(index) ==4:
-            #     self.traceCount +=1
             if len(index) < 2:
                 item.setExpanded(True)
             for i in range(len(node.children)):
@@ -798,12 +732,6 @@ class PulView(pg.QtGui.QTreeWidget):
             if len(index) == 2:  ## grab series level of data
                 indices.append(index)
 
-        #        if len(indices) == 0:   ## no single traces
-        #            return
-        #        print(indices)
-        # print('In pur view')
-        # print(indices)
-        # print('.....')
         self.indices = indices
         self.frame.currentPulseTree = self
         self.frame.update_trace_plot()
@@ -1003,17 +931,6 @@ class TabView(QtGui.QTabWidget):
             myMenu.exec_(QtGui.QCursor.pos())
         except IndexError:
             print("action item not set for this tab")
-        # if idx == 0:
-        #     actionName = 'batch connection analysis'
-        #     ctAction = pg.QtGui.QAction(actionName)
-        #     ctAction.triggered.connect(self.ctAction_callback)
-        #     self.myMenu.addAction(ctAction)
-        # elif idx == 1:
-        #     actionName = 'batch firing pattern'
-        # elif idx == 2:
-        #     actionName = 'event analysis'
-        # else:
-        #     return
 
     def insertTabWithAction(self, tabObj, actions, label=""):
         ## inherit parent addTab function
@@ -1047,11 +964,6 @@ class MatplotView(MatplotlibWidget.MatplotlibWidget):
         self.setParent(parent)
         self.figure = self.getFigure()
         self.clf()
-        # if plotGrid == None:
-        #     self.axes = self.figure.add_subplot(111) ## default just one plot. Othewise, use subplots to generate new subplots
-        # else:
-        #     self.subplots(plotGrid[0], plotGrid[1])
-        #        self.hide()
 
     def subplots(self, nrow, ncol):
         ## set up subplots
@@ -1098,12 +1010,6 @@ class PlotView(GraphicsLayoutWidget):
         super(PlotView, self).__init__()
         self.frame = parent
         self.setWindowTitle(title)
-        #        self.setBackground(background)
-        #        self.layout = pg.GraphicsLayoutWidget(title = title)
-        #        self.layout.ci.setBorder()
-        #        self.layout.ci.setBorder(pg.mkPen(None))
-        #        self.layout.ci.setContentsMargins(10, 10, 10, 20)
-        #        self.setCentralWidget(self.layout.ci)
         self.setBackground(background)
         #        self.layout = pg.GraphicsLayoutWidget(title = title)
         self.ci.setBorder()
@@ -1130,14 +1036,6 @@ class ParameterView:
         self.p = Parameter.create(
             name=name, type=type, children=children, readonly=readonly
         )
-        # self.p.sigTreeStateChanged.connect(self.change)
-
-    #        for child in self.p.children():
-    #            child.sigValueChanging.connect(self.valueChanging)
-    #            for ch2 in child.children():
-    #                ch2.sigValueChanging.connect(self.valueChanging)
-    # self.p.param('Save/Restore parameters', 'Save State').sigActivated.connect(self.save)
-    # self.p.param('Save/Restore parameters', 'Restore State').sigActivated.connect(self.restore)
 
     def setChildValue(self, childPath, childValue):
         """
@@ -1523,8 +1421,6 @@ class EventMark(pg.InfiniteLine):
             return
         # if ev.modifiers() == QtCore.Qt.AltModifier:  ## switch states
         if self.active:
-            # self.clearMarkers()
-            # self.addMarker('v')
             self.setPen((155, 155, 155, 255))
             self.setHoverPen("g")
             print("Event invalidated")

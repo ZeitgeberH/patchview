@@ -1,4 +1,5 @@
 colorcet
+pynwb
 Pillow
 tqdm
 PySide2==5.15.2 

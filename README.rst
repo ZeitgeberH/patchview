@@ -12,7 +12,7 @@ PatchView
     :target: https://github.com/psf/black
     
 
-PatchView perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis,
+PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
 synatpic connection detection, morphological analysis and more.
 
 

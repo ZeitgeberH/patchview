@@ -11,9 +11,10 @@ def makePath(path, file):
     return os.path.join(path, file)
 from patchview.HekaIO import HEKA_Reader_MAIN as HEKA
 from patchview.HekaIO.HekaHelpers import HekaBundleInfo
+from pynwb import NWBHDF5IO
+from patchview.utilitis.PVdat2NWB import dat2NWB
 
 testFile = "210702s5c08.dat" 
-
 testFile_noExit = "180514.dat"
 testFile_wrongExt = "180514c1r1.date"
 
@@ -23,13 +24,46 @@ try:
 except Exception:
     print("faild to load test file!")
 
-class Test_HEKA_Reader(unittest.TestCase):
+def writeNwb():
+    ''' read Heka file and write to NWB file
+    '''
+    try:
+        nwbfile = dat2NWB(os.path.join('Data',testFile), [0,0])
+        nwbfile.saveNBF(os.path.join('Data','test2.nwb'))
+        return True
+    except:
+        return False
+
+def readNwb():
+    ''' Read back NWB file
+    '''
+    try:
+        io = NWBHDF5IO(os.path.join('Data',"test2.nwb"), 'r') 
+        nwbfile = io.read()
+        print(nwbfile.fields.keys())
+        io.close()
+        return True
+    except:
+        return False
+
+class Test_PatchView(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def test_read_hekaFile(self):
         bundle = HekaBundleInfo(makePath(DataPath, testFile))
         self.assertIsInstance(bundle, HekaBundleInfo)
+
+    def test_writeNwb(self):
+        self.assertTrue(writeNwb())
+
+    def test_NwbContents(self):
+        ''' test if there are 50 sweeps in this nwb file'''
+        nwbfile = dat2NWB(os.path.join('Data',testFile), [0,0])
+        self.assertEqual(nwbfile.getNumberOfSweeps()==50)  
+
+    def test_readNwb(self):
+        self.assertTrue(readNwb())
 
     def test_wrong_ext(self):
         self.assertRaises(

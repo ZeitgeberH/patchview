@@ -1,0 +1,16 @@
+RootDir: ''
+Filters: ## filter cut off frequency for  Bessel or Butterworth filter. unit of Hz.
+    Option: 0 ## default Bessel, 1 for Butterworth
+    High cutoff: 10000.0
+CleanUp: ## data clean-up criterias
+    minimalSweeps: 3 ## at least three sweeps to use!
+Protocols:  ## existing patch protocols and alias
+    Firing pattern: ['FP', 'fp', 'Firing Pattern', 'firing pattern','AllCurrentClamp']
+    Connection: ['STI', 'Sti', 'Cc', 'cc']  ## check connections
+    Retina: ['Light_stimulation', 'light stimulation']  ## check light response
+    Spontaneous: ['EPSP', 'EPSPs','EPSC', 'EPSCs', 'sEPSP','sEPSPs','sEPSC','sEPSCs', \
+    'SP','SP_VC', 'SP_CC','Spontaneous Inputs','Spontaneous','sAP']  
+      
+Visulization:
+    Plot stim: 1  ## if stim is used, plot it along the raw traces
+    Downsampling: 1.0  ## plot less points to speed up

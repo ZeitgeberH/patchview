@@ -9,6 +9,7 @@ Welcome to PatchView's documentation!
    installation
    introduction
    tutorials
+   APIs
    contributing
    credits
    resources

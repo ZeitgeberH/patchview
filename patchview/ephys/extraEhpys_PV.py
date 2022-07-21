@@ -29,7 +29,6 @@ from sklearn import linear_model
 
 ransac = linear_model.RANSACRegressor()
 
-
 class extraEphys(object):
     def __init__(
         self,

@@ -8,11 +8,10 @@ from dateutil.tz import tzlocal
 from pynwb import NWBFile, NWBHDF5IO
 from pynwb.icephys import CurrentClampStimulusSeries, CurrentClampSeries
 import numpy as np
-
 from patchview.HekaIO import HEKA_Reader_MAIN as HEKA
+import matplotlib.pyplot as plt
 
-
-class XLJdat2NWB(NWBFile):
+class dat2NWB(NWBFile):
     def __init__(self, datFile, sessionIdx, **kw):
         """
         parameters:sessionIdx
@@ -20,7 +19,7 @@ class XLJdat2NWB(NWBFile):
         sessionIdx: [group, series]  ## one file for one series
         """
         self._HekaBundle(datFile)
-        super(XLJdat2NWB, self).__init__(
+        super(dat2NWB, self).__init__(
             "",
             datFile,
             self._bundle.session_start_time,
@@ -46,7 +45,7 @@ class XLJdat2NWB(NWBFile):
         devices=None, subject=None, scratch=None, icephys_electrodes=None
         """
         self.sessionIdx = sessionIdx
-        self.device = self.create_device(name="Heka EPC10_USB Quadro")  ##?
+        self.device = self.create_device(name="Heka EPC10_USB Quadro")  #
         self._setStimulusElectrodes()
         self._setRecordingElectrodes()
         self._setCellData()
@@ -61,7 +60,7 @@ class XLJdat2NWB(NWBFile):
     def _setStimulusElectrodes(self):
         """Stimulating electrode id is usually in the Pulse tree's @Series' label, such as
         "Sti 1S-cc", or "Cell 5 fp". Or in the stimuli tree's @Stimulation's label
-        We assume there's only one channel is in use for stimululating. And we use the metadata
+        We assume there's only one channel is in use for stimulating. And we use the metadata
         from the first channel.
         Ref: https://pynwb.readthedocs.io/en/stable/pynwb.icephys.html
         """
@@ -69,23 +68,6 @@ class XLJdat2NWB(NWBFile):
         idx.append(0)  ## assume only 1 channel is stimulating
         stimTime, stimData, stimInfo = self._bundle.stim(idx)
 
-        #        for elec in self.pul[idx[0]][idx[1]][idx[2]].children:
-        #            self.StimElecs.append(self.create_icephys_electrode(name=stimInfo[0]['EntryName'], #trace.Label,
-        #                                    description='Great data', #trace.Label,
-        #                                   device=self.device))
-
-        #                    stim_ = {'EntryName': stimulatingElectrode, 'start': cumSamples,
-        #                     'end': cumSamples + segSamples, 'duration': seg.Duration,
-        #                     'amplitude': seg_V,  'sampleInteval': sampleInteval,
-        #             'Vholding': Holding, 'Stim2Dac':stim2dacType,'sealresistance':sealResistance}
-        ## grab the epoc when the real stimulu starts.
-        #        stimEpoch = 0
-        ##        print(stimInfo)
-        #        for stimIdx, stim in enumerate(stimInfo):
-        #            if abs(stim['amplitude'] - stim['Vholding']) > 1:  ## first non-zero amplitude
-        #                stimEpoch = stimIdx
-        ##                print('stimEpoch: %g' % stimEpoch)
-        #                break
         self.SeriesName = (
             stimInfo[0]["EntryName"] + "_G" + str(idx[0]) + "_S" + str(idx[1])
         )
@@ -103,11 +85,17 @@ class XLJdat2NWB(NWBFile):
             #            ## TODO: need to work with Ampl file in the .dat file to get the "gain"
             idx = list(self.sessionIdx.copy())
             idx.append(j)  ## append this sweep
+            if j<10:
+                sName = '00'+str(j)
+            elif j<100:
+                sName = '0'+str(j)
+            else:
+                sName = str(j)
             stimTime, stimData, stimInfo = self._bundle.stim(idx)
             ##??? which version support "ValueError: Specifying rate and timestamps is not supported."
             self.add_stimulus(
                 CurrentClampStimulusSeries(
-                    name=self.SeriesName + "_sw" + str(j),
+                    name=self.SeriesName + "_sw" + sName,
                     data=np.array(stimData),
                     #                        starting_time = stimTime[-1]*j,
                     rate=1.0 / stimInfo[0]["sampleInteval"],
@@ -116,7 +104,7 @@ class XLJdat2NWB(NWBFile):
                     sweep_number=j,
                     conversion=1e-12,
                     unit="amperes",
-                )
+                ),use_sweep_table=True
             )
 
     def _setRecordingElectrodes(self):
@@ -143,11 +131,17 @@ class XLJdat2NWB(NWBFile):
             baseIdx = list([idx[0], idx[1]])
             baseIdx.append(s)
             baseIdx.append(0)
+            if s<10:
+                sName = '00'+str(s)
+            elif s <100:
+                sName = '0'+str(s)
+            else:
+                sName = str(s)
             for t, trace in enumerate(sweep.children):
                 baseIdx[3] = t
                 self.add_acquisition(
                     CurrentClampSeries(
-                        name=self.SeriesName + "sw" + str(s) + trace.Label,
+                        name=self.SeriesName + "_sw" + sName +'_'+ trace.Label,
                         data=self._bundle.data[baseIdx],
                         rate=1.0 / trace.XInterval,
                         electrode=self.get_ic_electrode(trace.Label),
@@ -155,18 +149,63 @@ class XLJdat2NWB(NWBFile):
                         unit="volts",
                         gain=0.02,
                         sweep_number=s,
-                    )
+                    ), use_sweep_table=True
                 )
 
     def saveNBF(self, filename):
+        ''' Save as Nb format
+        '''
         with NWBHDF5IO(filename, "w") as io:
             io.write(self)
 
+    def getNumberOfSweeps(self):
+        if ~ hasattr(self, 'nSweep'):
+            self.nSweep = len(self.sweep_table)//2
+        return self.nSweep
 
-#        print('writing done!')
+    def getSweep(self, i):
+        ''' Get series with index i
+        return stimulus and response as sweep structure
+        '''
+        self.getNumberOfSweeps()
+        if i >=0 and i<self.nSweep:
+            stimulus, response = self.sweep_table.get_series(i)
+            return stimulus, response
+        else:
+            print('sweep index is not valid. Number of sweep should be less than ', self.nSweep)
+            
+    
+    def _sweepPlot(self, sweep,ax=None):
+        ''' helper visualizer
+        '''
+        if ax is None:
+            _, ax = plt.subplots()
+        dat = sweep.data[:]
+        yy = dat *sweep.conversion
+        xx = np.arange(len(dat))/sweep.rate    
+        ax.plot(xx, yy)   
+    
+    def plotSweep(self, i, axes=None):
+        ''' plot sweep of response and stimulus
+            if provide an plotting axes, make it contain at least two subplots panel.
+            By default, stimulus will be in the second panel.
+        '''
+        if axes is None:
+            fig, axes = plt.subplots(2,1, sharex=True)
+        if type(i) is int:
+            i = [i]
+        assert type(i) is list, "index to be integer or list of integers"
+        for s in i: ## plot all series
+            stimulus, response = self.getSweep(s)
+            self._sweepPlot(response, ax=axes[0])
+            self._sweepPlot(stimulus,  ax=axes[1])
+            axes[0].set_xlabel('')
+            axes[0].set_ylabel(response.unit)
+            axes[1].set_ylabel(stimulus.unit)
+            axes[1].set_xlabel('time (s)')
+        plt.show()
 
 
 class HekaFileError(Exception):
     """Generic Python-exception-derived object raised by any function."""
-
     pass
