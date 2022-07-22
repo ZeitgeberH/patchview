@@ -104,8 +104,9 @@ ENV/
 .gitignore
 *~
 *~
-src/*~
-src/.gitignor~
+patchview/*~
+patchview/.gitignor~
+patchview/hooks/*
 .editorconfig
 
 .vscode

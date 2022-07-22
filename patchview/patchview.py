@@ -52,7 +52,17 @@ from matplotlib.collections import LineCollection
 from sklearn import linear_model
 from matplotlib import image as ReadImage
 from patchview.utilitis.PVdat2NWB import dat2NWB
-
+import pynwb
+from hdmf.spec import NamespaceCatalog
+from hdmf.utils import docval, getargs, popargs, call_docval_func, get_docval
+from hdmf.backends.io import HDMFIO
+from hdmf.backends.hdf5 import HDF5IO as _HDF5IO
+from hdmf.validate import ValidatorMap
+from hdmf.build import BuildManager, TypeMap
+import hdmf.common
+from hdmf.spec import NamespaceCatalog  # noqa: E402
+from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  # noqa: E402
+from hdmf.build import BuildManager, TypeMap  # noqa: E402
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
