@@ -13,15 +13,17 @@ You can download the zip file from its Github `releases`_ page. After unzipped
 it into a folder, you can directly double click the executable file ,**PatchView.exe**, to start the app. No
 python installation is needed. 
 
-Note: it takes longer time (15~30 seconds) when you run the programme the first time, as compressed libraries are unzipped.
-It should be much faster for following runs. 
-
 .. _releases: https://github.com/ZeitgeberH/patchview/releases
 
 To remove the app, just delete the whole folder.
 
-Note: since Pyinstaller is cross-platform, it is possible to package PatchView for other platform, Mac or Linux.
-We have not try these options yet. Contributions are welcome!
+**Note**
+
+* It takes about 15 ~ 30 seconds when you run the programme the first time, as compressed libraries needs to be unzipped. 
+  It should be much faster for following runs. 
+
+* since Pyinstaller is cross-platform, it is possible to package PatchView for other platform, Mac or Linux. 
+  We have not tried these options yet. Contributions are welcome!
 
 Pip install
 --------------
