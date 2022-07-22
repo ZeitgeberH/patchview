@@ -9,9 +9,11 @@ Stand-along App
 -----------------------
 
 If your operating system is Windows 10, PatchView has a prepackaged app using `Pyinstaller`_.  
-You can download the zip file from the release page. After unzipped
+You can download the zip file from its Github `releases`_ page. After unzipped
 it into a folder, you can directly double click the executable file to start the app. No
 python installation is needed. 
+
+.. _releases: https://github.com/ZeitgeberH/patchview/releases
 
 To remove the app, just delete the whole folder.
 
@@ -24,6 +26,8 @@ Pip install
 To install PatchView via `pip`_, We recommend creating a virtual python environment first.
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
+
+
 
 If you use conda, you can do this by:
 
