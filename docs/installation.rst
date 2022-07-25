@@ -10,7 +10,7 @@ Stand-along App
 
 If your operating system is Windows 10, PatchView has a prepackaged app using `Pyinstaller`_.  
 You can download the zip file from its Github `releases`_ page. After unzipped
-it into a folder, you can directly double click the executable file ,**PatchView.exe**, to start the app. No
+it into a folder, you can directly double click the executable file, **PatchView.exe**, to start the app. No
 python installation is needed. 
 
 .. _releases: https://github.com/ZeitgeberH/patchview/releases
