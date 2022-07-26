@@ -14,12 +14,12 @@ authors:
   - name: Xiaolong Jiang
     affiliation: 1,2,3
 affiliations:
- - name: Department of Neuroscience, Baylor College of Medicine, Houston, TX
-   index: 1
- - name: Jan and Dan Duncan Neurological Research Institute at Texas Children’s Hospital, Houston,TX, USA
-   index: 2
- - name: Department of Ophthalmology, Baylor College of Medicine, Houston, TX
-   index: 3
+  - name: Department of Neuroscience, Baylor College of Medicine, Houston, TX
+    index: 1
+  - name: Jan and Dan Duncan Neurological Research Institute at Texas Children’s Hospital, Houston,TX, USA
+    index: 2
+  - name: Department of Ophthalmology, Baylor College of Medicine, Houston, TX
+    index: 3
 date: 19 July 2022
 bibliography: paper.bib
 ---
