@@ -10,9 +10,9 @@ tags:
 authors:
   - name: Ming Hu
     orcid: 0000-0002-5254-5315
-    affiliation: 1,2
+    affiliation: "1, 2"
   - name: Xiaolong Jiang
-    affiliation: 1,2,3
+    affiliation: "1, 2, 3"
 affiliations:
   - name: Department of Neuroscience, Baylor College of Medicine, Houston, TX
     index: 1
