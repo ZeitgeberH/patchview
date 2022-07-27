@@ -12,11 +12,11 @@ Following are examples of visualizations that PatchView can do.
 
 - Parsing HEKA PatchMaster data bundle (.dat) and rendering the data structure (a tree) in a pyqtgraph tree widget (
   left middle panel).
-- You can then select single (left clicking a sweep) or mutiple traces (by pressing Ctrl key while left clicking
-  mutiple traces in the tree widget). Three representive sweeps from the entire series data will be plotted if you click at "Series" level. The plots are pyqtgraph's
+- You can then select single (left clicking a sweep) or multiple traces (by pressing Ctrl key while left clicking
+  multiple traces in the tree widget). Three representative sweeps from the entire series data will be plotted if you click at "Series" level. The plots are pyqtgraph's
   buildin plotwidget, thus all default operations (zoom-in, pan etc. ) are supported.
 
-*Ploting single trace*
+*Plotting single trace*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Top panel: voltage for a sweep. Bottom panel: stimulus input. Same conventions for all related plots below. 
 
@@ -26,7 +26,7 @@ Top panel: voltage for a sweep. Bottom panel: stimulus input. Same conventions f
 
 *Plotting multiple trace*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Multiple sweeps (indicated by differnt colors) from a a single series. Colors lines for Stimuli traces
+Multiple sweeps (indicated by different colors) from a a single series. Colors lines for Stimuli traces
 match with that of voltage traces.
 
 .. image:: resources/images/pasedavian_002_multTraces.png
@@ -57,7 +57,7 @@ For each spike, PatchView plots its phase plot (dV/dt verse V) (Shown in top rig
 
 *Extract neuron's features*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-PatchView extract all these features and present the results in three seperate tables: by Sweep, by Spikes, and by Cells.
+PatchView extract all these features and present the results in three separate tables: by Sweep, by Spikes, and by Cells.
 IPFX provide some parameters for its detection procedures. These parameters can be adjusted in the *spike detection* tab
 on the left side.
 
@@ -68,11 +68,11 @@ on the left side.
 
 **Monosynaptic connection detection**
 -------------------------------------------
-For Multi-patch experiment, multiple (up to 12) neurons were recorded simutaneouly. In each sweep, one the neuron were either electrically 
+For Multi-patch experiment, multiple (up to 12) neurons were recorded simultaneously. In each sweep, one the neuron were either electrically 
 or optically stimulated above its firing threshold. A postsynaptic event may be observed in short latency if it receives monosynaptic connections
 from the stimulated neuron.
 
-Detected synatpic network is visualized using `NetworkX <https://networkx.org/>`_
+Detected synaptic network is visualized using `NetworkX <https://networkx.org/>`_
 
 .. image:: resources/images/connections.png
     :width: 800
@@ -84,8 +84,8 @@ A deconvolution-based (Pernia-Andrade et al.) method is implemented to detect mi
 
 * Pernia-Andrade, A. J. et al. A deconvolution-based method with high sensitivity and temporal resolution for detection of spontaneous synaptic currents in vitro and in vivo. Biophys J 103, 1429–1439 (2012)
 
-We provide a rich GUI to specify template, adjust parameters of detection algorithms,  visual inspection of events and manul curating. A table is generated with each event's information.
-User can inspect each event, either by clicing item in the table or quickly browsering using arrow key. 
+We provide a rich GUI to specify template, adjust parameters of detection algorithms,  visual inspection of events and manual curating. A table is generated with each event's information.
+User can inspect each event, either by clicking item in the table or quickly browsing using arrow key. 
 User can also flag individual event as False before exporting the whole table. 
 
 .. image:: resources/images/event_detec.png
@@ -96,7 +96,7 @@ User can also flag individual event as False before exporting the whole table.
 **Morphological data**
 ---------------------------
 Internally, PatchView utilize an adapted version of `NeuroM <https://github.com/BlueBrain/NeuroM>`_  from the Blue Brain Project for tree recontruction and associated analysis with custom added functionalities (
-such as measure cell’s distance to Pia). 
+such as measure cell's distance to Pia). 
 - Parsing Neurolucida file (.asc) and rendering the tree structure (both 2D and 3D).
 
 *Plotting soma and neurites for a single neuron*

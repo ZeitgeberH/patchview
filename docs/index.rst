@@ -13,7 +13,6 @@ Welcome to PatchView's documentation!
    contributing
    credits
    resources
-   history
 
 Indices and tables
 ==================

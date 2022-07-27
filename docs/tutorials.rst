@@ -13,8 +13,8 @@ Use the file browser to expand (click the arrow) directories. Once located the f
 the file. The contents of this file will be represented as a hierarchical tree in a tab named "Current tree" in the
 left panel. Click the arrow at start of the name to expand. 
 
-*import multiple files simutaneouly*
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*import multiple files simultaneously*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Note**: this method assume that you follow a naming convention: date-slice#-cell#. For example, 20220202s1c1.dat, means
 this file was recorded on date 2022/02/02 from slice 1 and cell 1. 
@@ -66,13 +66,13 @@ analysis for the whole series. The results are shown in two formats in the "Firi
 
 *multiple series FP analysis*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Load all series of interests using method described in **import multiple files simutaneouly** section. Invoke firing 
+Load all series of interests using method described in **import multiple files simultaneously** section. Invoke firing 
 pattern analysis from the contex menu of the "Firing pattern" tab in the first middle left panel.
 
 **Monosynaptic connection detection**
 -------------------------------------------
 Same loading method as the multiple series FP analysis. Invoke **Synaptic connections (Batch)** from the context menu of 
-the "Connection" tab in the first middel left panel.
+the "Connection" tab in the first middle left panel.
 
 **Postsynaptic event (PSP/PSC) analysis**
 -------------------------------------------

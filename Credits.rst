@@ -17,7 +17,7 @@ Open source package used in PatchView
 Patchview makes use and integrates many awesome open-source python packages contributed 
 by Python communities. This includes:
 
-- PyQt5_, pyqtgraph_, matplotlib_ for GUI and visualiziation.
+- PyQt5_, pyqtgraph_, matplotlib_ for GUI and visualization.
   
 - numpy_ and pandas_ for number crunching.
 

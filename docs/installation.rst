@@ -55,7 +55,7 @@ the GUI program at a command line by type
 
     (patchview) $ patchview
 
-or in a python enviroment:
+or in a python environment:
 
 .. code-block:: python
 
@@ -106,7 +106,7 @@ Or download the `tarball`_:
 
     $ curl  -OL https://github.com/zeitgeberH/patchview/tarball/master
 
-Once you have a copy of the source, use Conda to create an virtual enviroment:
+Once you have a copy of the source, use Conda to create an virtual environment:
 
 .. code-block:: console
 
