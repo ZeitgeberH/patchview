@@ -21,7 +21,7 @@ PatchView
     
 
 PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
-synatpic connection detection, morphological analysis and more.
+synaptic connection detection, morphological analysis and more.
 
 
 * Free software: BSD 3-Clause license
@@ -32,13 +32,13 @@ Features
 --------
 PatchView integrates multiple open-source tools (see credit page) and wrap them using an intuitive graphic user interface (GUI).
 Thus users can perform most analysis quickly for the data collected in a typical patch-clamp experiment without installing Python and 
-these tools or writting any Python scripts.
+these tools or writing any Python scripts.
 
+* Importing both Heka data and Axon Instruments data. Exporting to Python pickle file or NWB (Neurodata Without Borders) file format.
+* Visualizing single and multiple traces with zoom, pan operations.
+* Automatically sorting experiments data according to predefined labels.
+* Performing analysis on intrinsic membrane properties, action potential detection, firing pattern analysis.
+* Synaptic connection analysis.
+* Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
-* Importing Heka patchmaster data and Axon file data
-* Visualizing single and multiple traces with Zoom-in, Pan operations
-* Performing analysis on actiona potential detection, firing pattern analysis
-* Synaptic connection analysis
-* Mini-event analysis
-* Visualizing morphological reconstruction files from Neurolucida
 
