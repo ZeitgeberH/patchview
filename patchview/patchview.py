@@ -37,6 +37,7 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
 )
 from patchview.utilitis import fitFuncs
+from patchview.utilitis.morphorFeatureExtrator import getSomaStats, extractMorhporFeatures
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
@@ -658,7 +659,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "maximal radius": [],
                 "minimal radius": [],
                 "min_max_ratio": [],
-                "maximal diamter": [],
+                "maximal diameter": [],
                 "intercell distance": [],
             }
 
@@ -666,19 +667,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 fig2D, ax2D = morphor_viewer.draw(
                     n, mode="2d", fig=fig2D, ax=ax2D, label=str(idx + 1)
                 )
-                # morp, ax2Dhor_viewer.draw(n, mode='3d',fig=fig3D, ax =ax3D)
-                ps = n.soma.points[:, :3]
-                maxDia = self.minmaxDist(ps)
-                ps_center = np.nanmean(ps, axis=0)
-                ps_radius = np.sqrt(np.nansum((ps - ps_center) ** 2, axis=1))
-                ps_avgRadius = np.nanmean(ps_radius)
-                ps_center = np.nanmean(ps, axis=0)
-
-                centers["X"].append(ps_center[0])
-                centers["Y"].append(ps_center[1])
-                centers["Z"].append(ps_center[2])
+                maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
+                centers["X"].append(soma_center[0])
+                centers["Y"].append(soma_center[1])
+                centers["Z"].append(soma_center[2])
+                centers["average radius"].append(soma_avgRadius)
+                centers["maximal radius"].append(np.max(soma_radius))
+                centers["minimal radius"].append(np.min(soma_radius))
+                centers["min_max_ratio"].append(np.min(soma_radius) / np.max(soma_radius))
+                centers["maximal diameter"].append(maxDia)
                 distanceList_ = []
-                if len(centers["X"]) > 1:
+                if len(centers["X"]) > 1:## calculte distance between cells 
                     x0, y0, z0 = centers["X"][-1], centers["Y"][-1], centers["Z"][-1]
                     for kkk, _ in enumerate(centers["X"][:-1]):
                         d = np.round(
@@ -690,12 +689,6 @@ class MainWindow(QtWidgets.QMainWindow):
                             1,
                         )
                         distanceList_.append(d)
-
-                centers["average radius"].append(ps_avgRadius)
-                centers["maximal radius"].append(np.max(ps_radius))
-                centers["minimal radius"].append(np.min(ps_radius))
-                centers["min_max_ratio"].append(np.min(ps_radius) / np.max(ps_radius))
-                centers["maximal diamter"].append(maxDia)
                 centers["intercell distance"].append(distanceList_)
                 centers["Name"].append(str(idx + 1))
 
@@ -762,30 +755,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 "number_of_sections_per_neurite", neurons
             )
             df_summary = {}
-            ps = neurons.soma.points[:, :2]
-            maxDia = self.minmaxDist(ps)
-            ps_center = np.mean(ps, axis=0)
-            ps_radius = np.sqrt(np.sum((ps - ps_center) ** 2, axis=1))
-            ps_avgRadius = np.mean(ps_radius)
             df_summary["ASC file"] = [fname]
-            df_summary["Neuron id"] = [neurons.name]
-            df_summary["center X"] = [ps_center[0]]
-            df_summary["center Y"] = [ps_center[1]]
-            df_summary["center Z"] = [soma_center[2]]
-            df_summary["average radius"] = [ps_avgRadius]
-            df_summary["maximal radius"] = [np.max(ps_radius)]
-            df_summary["minimal radius"] = [np.min(ps_radius)]
-            df_summary["maximal diamter"] = [maxDia]
-            df_summary["Number of neurite"] = [number_of_neurites[0]]
-            df_summary["Number of sections"] = [number_of_sections[0]]
-            for i, neurite in enumerate(neurons.neurites):
-                df_summary[str(neurite.type)] = [number_of_sections_per_neurite[i]]
-            # df = pd.DataFrame(df_summary)
-            df = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
-            df = np.array(
-                df.to_records(index=False)
-            )  ## format dataframe for using in QtTable wiget
-            self.splitViewTab_morph.tables["Summary"].appendData(df)
+            df_summary = extractMorhporFeatures(neurons, df_summary)
+            self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
         ax2D.axis("off")
 
@@ -795,13 +767,14 @@ class MainWindow(QtWidgets.QMainWindow):
             ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
             ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
             ax2D.margins(0.25)
-        self.splitViewTab_morph.matplotViews["2D"].draw()
+        self.splitViewTab_morph.matplotViews["2D"].canvas.draw()
         fig2D.tight_layout()
         # self.splitViewTab_morph.matplotViews['3D'].draw()
 
     def minmaxDist(self, ps):
-        """calculate minmial and maximal diameter"""
-        ## ps: 2-D numpy aary
+        """calculate minmial and maximal diameter
+        ps: 2-D numpy array
+        """
         nPoints = len(ps)
         # minDia = 1000
         maxDia = 0
