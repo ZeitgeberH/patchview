@@ -67,7 +67,7 @@ from hdmf.build import BuildManager, TypeMap  # noqa: E402
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
-__version__ = "0.2.2"
+__version__ = "0.2.5"
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -760,9 +760,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
         ax2D.axis("off")
-
-        # fig3D.tight_layout()
-
         if hasattr(neurons, "neurons"):
             ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
             ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
@@ -781,8 +778,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for j in range(nPoints - 1):
             for k in range(j + 1, nPoints):
                 diameter = np.sqrt(np.sum((ps[j] - ps[k]) ** 2))
-                # if diameter < minDia:
-                #     minDia = diameter
                 if diameter > maxDia:
                     maxDia = diameter
         return maxDia

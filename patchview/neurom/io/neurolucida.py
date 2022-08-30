@@ -109,7 +109,7 @@ def _match_section(section, match):
         if i >= len(section):
             return None
         if section[i] in CUSTOM_SECTIONS:
-            print(section[i] + " detected")
+            # print(section[i] + " detected")
             return None
         if isinstance(section[i], StringType) and section[i] in match:
             return match[section[i]]
@@ -298,8 +298,8 @@ def _sections_to_raw_data(sections):
         else:
             neurites.append(neurite)
     assert somas is not None, "Missing CellBody element (ie. soma)"
-    print(f"Found {len(somas)} somas in current file")
-    print(f"Found {len(neurites)} neurite in current file")
+    # print(f"Found {len(somas)} somas in current file")
+    # print(f"Found {len(neurites)} neurite in current file")
     # total_length = len(soma) + sum(len(neurite) for neurite in neurites)
     if len(somas) > 1:
         ret = []

@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
-dynamic = ["version"]
+dynamic = ["authors","version","keywords","entry-points","optional-dependencies", "dependencies"]
 
 [project.gui-scripts]
 patchview = "patchview:pvGUI"

@@ -118,7 +118,9 @@ then activate the environment and run:
 
     $ conda activate patchviewPy3
     
-    $ python setup.py install
+    $ pip install -r requirement.txt ## install requirement
+
+    $ pip install -e .
     
 .. _Pyinstaller: https://pyinstaller.org/en/stable/   
 .. _Github repo: https://github.com/zeitgeberH/patchview

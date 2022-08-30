@@ -12,9 +12,9 @@ dependencies:
     - Pillow
     - tqdm
     - pyqtwebengine
-    - PySide2==5.15.2
-    - PyQT5==5.12
-    - pyqtgraph==0.12.4
+    - PySide2
+    - PyQT5
+    - pyqtgraph
     - PyOpenGL
     - PyOpenGL_accelerate
     - spyder
