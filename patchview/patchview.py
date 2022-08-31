@@ -37,13 +37,15 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
 )
 from patchview.utilitis import fitFuncs
-from patchview.utilitis.morphorFeatureExtrator import getSomaStats, extractMorhporFeatures
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
 ## reading neuroluscida file
-import patchview.neurom as morphor_nm
-from patchview.neurom import viewer as morphor_viewer
+import neurom as morphor_nm
+from neurom import viewer as morphor_viewer
+from neurom.io.multiSomas import MultiSoma
+from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
+from neurom.core.morphology import Morphology
 import neo
 from neo.io import AxonIO
 import warnings
@@ -639,16 +641,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateTreeMorphView(self, fname):
         # try:
+        pv = self.splitViewTab_morph.getParTreePars("Analysis")
+        if pv["Options"][1]["Draw contour"][0]:
+            drawContour = True
+        else:
+            drawContour = False
         self.splitViewTab_morph.matplotViews["2D"].getFigure().set_size_inches(
             5, 5, forward=False
         )
-        neurons, custom_data = morphor_nm.load_neuron(fname)
+        neurons = morphor_nm.load_morphology(fname)
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.clf()
         ax2D = fig2D.add_subplot(111)
         ax2D.cla()
-
-        if hasattr(neurons, "neurons"):
+        if isinstance(neurons, MultiSoma):
+            print('Multi soma detected!')
             ## population of neurons with soma only
             centers = {
                 "Name": [],
@@ -663,10 +670,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "intercell distance": [],
             }
 
-            for idx, n in enumerate(neurons):
-                fig2D, ax2D = morphor_viewer.draw(
-                    n, mode="2d", fig=fig2D, ax=ax2D, label=str(idx + 1)
-                )
+            for idx, n in enumerate(neurons.pop_neurons):
                 maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
                 centers["X"].append(soma_center[0])
                 centers["Y"].append(soma_center[1])
@@ -676,28 +680,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 centers["minimal radius"].append(np.min(soma_radius))
                 centers["min_max_ratio"].append(np.min(soma_radius) / np.max(soma_radius))
                 centers["maximal diameter"].append(maxDia)
-                distanceList_ = []
-                if len(centers["X"]) > 1:## calculte distance between cells 
-                    x0, y0, z0 = centers["X"][-1], centers["Y"][-1], centers["Z"][-1]
-                    for kkk, _ in enumerate(centers["X"][:-1]):
-                        d = np.round(
-                            np.sqrt(
-                                (centers["X"][kkk] - x0) ** 2
-                                + (centers["Y"][kkk] - y0) ** 2
-                                + (centers["Z"][kkk] - z0) ** 2
-                            ),
-                            1,
-                        )
-                        distanceList_.append(d)
-                centers["intercell distance"].append(distanceList_)
+                centers["intercell distance"].append(neurons.getDistMatrix(centers))
                 centers["Name"].append(str(idx + 1))
 
+            morphor_viewer.draw(
+                neurons, mode="2d", fig=fig2D, ax=ax2D,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
+                 labels=None
+            )
             self.splitViewTab_morph.matplotViews["2D"].draw()
             xlim1 = ax2D.xaxis.get_data_interval().copy()
             ylim1 = ax2D.yaxis.get_data_interval().copy()
 
-            if len(custom_data) > 0:
-                for datablock in custom_data:
+            if len(neurons.custom_data) > 0:
+                for datablock in neurons.custom_data:
                     d = datablock.data_block
                     if d[0][4] == 8:  ## PIA, just draw lines
                         ax2D.plot(d[:, 0], d[:, 1], "k", label="Pia")
@@ -721,66 +717,54 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].clear()
             self.splitViewTab_morph.tables["Summary"].appendData(df)
             self.splitViewTab_morph.tables["Summary"].show()
+    
             self.updateInterCellDistance()
 
         else:  ## single neuron with dendtrite and/or axons
+
             morphor_viewer.draw(
-                neurons, mode="2d", realistic_diameters=True, fig=fig2D, ax=ax2D
+                neurons, mode="2d", realistic_diameters=True, fig=fig2D, ax=ax2D,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2
             )
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
             ax2D.set_title("{0}".format(fname), fontsize=12, color="k")
-            pv = self.splitViewTab_morph.getParTreePars("Analysis")
-            if pv["Options"][1]["Draw contour"][0]:
-                if custom_data is not np.nan:
-                    ax2D.plot(
-                        custom_data[:, 0],
-                        custom_data[:, 1],
-                        "gray",
-                        label="Pia",
-                        linewidth=0.5,
-                    )
+
             # ax3D.set_zlim(zmin=max_scaling[0], zmax=max_scaling[1])
             print("Neuron morphology loaded!")
             ## get summary
             # self.splitViewTab_morph.tables['Summary'].clear()
-            number_of_neurites = morphor_nm.get("number_of_neurites", neurons)
+            # number_of_neurites = morphor_nm.get("number_of_neurites", neurons)
             # Extract the total number of sections
-            number_of_sections = morphor_nm.get("number_of_sections", neurons)
+            # number_of_sections = morphor_nm.get("number_of_sections", neurons)
             # Extract the soma radius
-            soma_radius = neurons.soma.radius
-            soma_center = neurons.soma.center
+            # soma_radius = neurons.soma.radius
+            # soma_center = neurons.soma.center
             # Extract the number of sections per neurite
-            number_of_sections_per_neurite = morphor_nm.get(
-                "number_of_sections_per_neurite", neurons
-            )
+            # number_of_sections_per_neurite = morphor_nm.get(
+            #     "number_of_sections_per_neurite", neurons
+            # )
             df_summary = {}
             df_summary["ASC file"] = [fname]
             df_summary = extractMorhporFeatures(neurons, df_summary)
+            df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
+            df_summary  = np.array(
+                df_summary.to_records(index=False)
+            )  ## format dataframe for using in QtTable widget
+            self.splitViewTab_morph.tables["Summary"].clear()
             self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
         ax2D.axis("off")
-        if hasattr(neurons, "neurons"):
-            ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
-            ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
-            ax2D.margins(0.25)
+        # if hasattr(neurons, "neurons"):
+        #     ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
+        #     ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
+        #     ax2D.margins(0.25)
+        self.splitViewTab_morph.matplotViews['2D'].draw()
         self.splitViewTab_morph.matplotViews["2D"].canvas.draw()
         fig2D.tight_layout()
         # self.splitViewTab_morph.matplotViews['3D'].draw()
-
-    def minmaxDist(self, ps):
-        """calculate minmial and maximal diameter
-        ps: 2-D numpy array
-        """
-        nPoints = len(ps)
-        # minDia = 1000
-        maxDia = 0
-        for j in range(nPoints - 1):
-            for k in range(j + 1, nPoints):
-                diameter = np.sqrt(np.sum((ps[j] - ps[k]) ** 2))
-                if diameter > maxDia:
-                    maxDia = diameter
-        return maxDia
+        self.neuronMorph = neurons
+        self.splitViewTab_morph.show()
 
     def updateSliceView(self):
         if hasattr(self, "slice_viewROIs"):
@@ -3157,6 +3141,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.hideSpikePanels()
         self.pia = None
         self.neuronsData = None
+        self.neuronMorph = None
         self.spikeTableSavePath = ""
 
     def resetAll_clicked(self):
@@ -6798,7 +6783,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for param, change, data in changes:
             childName = param.name()
             if childName == "Sholl analysis":
-                print("To be done!")
+                self.update_sholl()
             elif childName == "Update cell names":
                 self.updateInterCellDistance()
             elif childName == "Distance to Pia":
@@ -6816,7 +6801,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 format = pv["Save options"][1]["Format"][0]
                 figsize = pv["Save options"][1]["Size"][0]
                 fig = self.splitViewTab_morph.matplotViews["2D"].getFigure()
-                self.saveHighResFigure(fig, dpi, figsize, format)
+                self.saveHighResFigure(fig, dpi, figsize, format)   
+
+    def update_sholl(self):
+        if isinstance(self.neuronMorph, Morphology):
+            sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph)
+            print(f'sholl freq: {sholl_dist}')
+        else:
+            print('Not a morphological object for sholl analysis')
 
     def saveHighResFigure(self, fig, dpi, figsize, format):
         fig.set_size_inches(figsize, figsize, forward=True)
