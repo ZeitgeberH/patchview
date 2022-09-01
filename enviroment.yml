@@ -24,3 +24,4 @@ dependencies:
     - joblib
     - future==0.18.2
     - pyYAML==6.0
+    - numpy>=1.22,<1.24
