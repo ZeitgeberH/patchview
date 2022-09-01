@@ -742,6 +742,7 @@ class MainWindow(QtWidgets.QMainWindow):
             df_summary = {}
             df_summary["ASC file"] = [fname]
             df_summary = extractMorhporFeatures(neurons, df_summary)
+            df_summary = {k:[df_summary[k]] for k in df_summary} ## weird requr. of pandas
             df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
             df_summary  = np.array(
                 df_summary.to_records(index=False)
