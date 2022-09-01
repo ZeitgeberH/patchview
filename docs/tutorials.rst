@@ -135,3 +135,10 @@ in stead of the plot widget's build-in save button.
 .. image:: resources/images/morphor_tree.png
     :width: 800
     :alt: Alternative text
+
+click "sholl analysis" to perform Sholl analysis from NeuroM package.
+
+.. image:: resources/images/shollAna1.png
+    :width: 800
+    :alt: Alternative text
+

@@ -1,5 +1,5 @@
 """
-Patchviewer by M.H.
+Patchview by M.H.
 """
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem
@@ -41,6 +41,7 @@ from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
 ## reading neuroluscida file
+from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
 from neurom.io.multiSomas import MultiSoma
@@ -63,14 +64,12 @@ from hdmf.backends.hdf5 import HDF5IO as _HDF5IO
 from hdmf.validate import ValidatorMap
 from hdmf.build import BuildManager, TypeMap
 import hdmf.common
-from hdmf.spec import NamespaceCatalog  # noqa: E402
-from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  # noqa: E402
-from hdmf.build import BuildManager, TypeMap  # noqa: E402
+from hdmf.spec import NamespaceCatalog  
+from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  
+from hdmf.build import BuildManager, TypeMap
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
-__version__ = "0.2.5"
-
 class MainWindow(QtWidgets.QMainWindow):
     """
     Main frame.
@@ -414,10 +413,14 @@ class MainWindow(QtWidgets.QMainWindow):
         splitViewTab_morph.addMatPlotviewAtTop(["2D"], size=(100, 100), dpi=1000)
 
         splitViewTab_morph.addTablesAtBottomRight(
-            ["Summary", "Distance (um)", "Axon", "Apic dendrite", "Basal dendrite"],
+            ["Summary", "Distance (um)"],
             editable=True,
             sortable=False,
         )
+        self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
+        splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
+
+        
         splitViewTab_morph.addParameterToLeftTab(
             "Analysis", AllMyPars.Morphor_analysis, self.morph_analysis_event
         )
@@ -646,10 +649,14 @@ class MainWindow(QtWidgets.QMainWindow):
             drawContour = True
         else:
             drawContour = False
+        if pv["Options"][1]["Ignore diameters"][0]:
+            realDia = True
+        else:
+            realDia= False
         self.splitViewTab_morph.matplotViews["2D"].getFigure().set_size_inches(
             5, 5, forward=False
         )
-        neurons = morphor_nm.load_morphology(fname)
+        neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.clf()
         ax2D = fig2D.add_subplot(111)
@@ -723,8 +730,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:  ## single neuron with dendtrite and/or axons
 
             morphor_viewer.draw(
-                neurons, mode="2d", realistic_diameters=True, fig=fig2D, ax=ax2D,
-                contour_on=drawContour, contour_color='g', contour_linewidth=0.2
+                neurons, mode="2d", realistic_diameters=realDia, fig=fig2D, ax=ax2D,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
             )
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
@@ -732,18 +739,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # ax3D.set_zlim(zmin=max_scaling[0], zmax=max_scaling[1])
             print("Neuron morphology loaded!")
-            ## get summary
-            # self.splitViewTab_morph.tables['Summary'].clear()
-            # number_of_neurites = morphor_nm.get("number_of_neurites", neurons)
-            # Extract the total number of sections
-            # number_of_sections = morphor_nm.get("number_of_sections", neurons)
-            # Extract the soma radius
-            # soma_radius = neurons.soma.radius
-            # soma_center = neurons.soma.center
-            # Extract the number of sections per neurite
-            # number_of_sections_per_neurite = morphor_nm.get(
-            #     "number_of_sections_per_neurite", neurons
-            # )
             df_summary = {}
             df_summary["ASC file"] = [fname]
             df_summary = extractMorhporFeatures(neurons, df_summary)
@@ -755,10 +750,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
         ax2D.axis("off")
-        # if hasattr(neurons, "neurons"):
-        #     ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
-        #     ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
-        #     ax2D.margins(0.25)
         self.splitViewTab_morph.matplotViews['2D'].draw()
         self.splitViewTab_morph.matplotViews["2D"].canvas.draw()
         fig2D.tight_layout()
@@ -6780,21 +6771,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].show()
 
     def morph_analysis_event(self, param, changes):
+        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(0)
         for param, change, data in changes:
             childName = param.name()
             if childName == "Sholl analysis":
                 self.update_sholl()
+                self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
             elif childName == "Update cell names":
                 self.updateInterCellDistance()
+                self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(1)
             elif childName == "Distance to Pia":
                 self.measureDist2Pia()
-            elif childName == "Draw contour":
+            elif childName in ["Draw contour", "Ignore diameters"]:
                 fname = cleanASCfile(
                     self.currentMorphTreeFile
                 )  ## to clean not-want sections
                 self.updateTreeMorphView(fname)
                 if fname[-8:] == "_mod.ASC":
                     os.remove(fname)
+
             elif childName == "Export High resolution figure":
                 pv = self.splitViewTab_morph.getParTreePars("Analysis")
                 dpi = pv["Save options"][1]["DPI"][0]
@@ -6806,7 +6801,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_sholl(self):
         if isinstance(self.neuronMorph, Morphology):
             sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph)
-            print(f'sholl freq: {sholl_dist}')
+            
+            fig = self.morphAnaFigs_matplotView.getFigure()
+            fig.clf()
+            ax = fig.add_subplot(111)
+            ax.cla()
+            # ax.plot(sholl_bins, sholl_dist)
+            sns.set_style("whitegrid")
+            ax = sns.lineplot(x=sholl_bins, y=sholl_dist, ax=ax)
+            ax.set(xlabel='Distance from soma (um)', ylabel="#points",\
+            title="Sholl frequency")
+            ax.spines["right"].set_visible(False)
+            ax.spines["top"].set_visible(False)
+            fig.tight_layout()
+            self.morphAnaFigs_matplotView.draw()
+            self.morphAnaFigs_matplotView.canvas.draw()
         else:
             print('Not a morphological object for sholl analysis')
 

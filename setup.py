@@ -4,7 +4,6 @@
 """The setup script."""
 
 from setuptools import find_packages, setup
-
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
@@ -31,19 +30,21 @@ setup(
     author="Ming Hu",
     author_email='',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: patch-clamp users',
-        'License :: OSI Approved :: BSD 3-Clause License',
+        'Development Status :: 5 - Production/Stable',
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'Intended Audience :: End Users/Desktop',
+        'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         "Programming Language :: Python :: 3",
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         "Operating System :: OS Independent",
     ],
     description="Patchview perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis, synatpic connection detection, morphorlocial analysis and more.",
     install_requires=requirements,
     extras_require={'dev': dev_requirements},
-    license="BSD 3-Clause license",
+    license="BSD-3-Clause",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='patchview',
@@ -54,7 +55,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/zeitgeberH/patchview',
-    version='0.2.5',
+    version = "0.2.6",
     zip_safe=False,
     entry_points={
         'gui_scripts': [
