@@ -120,6 +120,10 @@ then activate the environment and run:
     
     $ pip install -r requirement.txt ## install requirement
 
+Finally, 
+
+.. code-block:: console
+    
     $ pip install -e .
     
 .. _Pyinstaller: https://pyinstaller.org/en/stable/   
