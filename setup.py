@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """The setup script."""
@@ -14,10 +13,12 @@ requirements = []
 with open('requirements.txt', 'r') as f:
    requirements += [l for l in f.read().split('\n') if l.strip()]
 
-## forked version of NeuroM   
-requirements +=[
-    'NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM'
-]
+# ## forked version of NeuroM.  Works for local install, but not from PyPI.
+# Since PyPI does not install non-PyPI hosted package. 
+# requirements +=[
+#     'NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM'
+# ]
+
 setup_requirements = ['pytest-runner']
 
 test_requirements = ['pytest']
