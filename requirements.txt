@@ -8,7 +8,7 @@ pyqtwebengine
 pyqt5-sip
 pyqtgraph
 PyOpenGL
-PyOpenGL_accelerate>=3.1.6
+PyOpenGL_accelerate>=3.1.6 ; sys_platform == 'win32'
 cython
 neo
 pylru==1.2.1
