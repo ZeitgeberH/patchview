@@ -173,3 +173,7 @@ an interneuron in hippcampus.
 
 `test.nwb`: a recording file in neurodata-without-borders format. 
 
+
+Tests
+-----------------
+Run pytest in the `tests`` folder 
