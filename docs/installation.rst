@@ -90,14 +90,14 @@ then reinstall them via:
 If this does not resolve the issue, please open a PatchView's github issue.
 
 **Note 2**
-Tested platforms: Windows 10, Ubuntu 18.04 LTS, Mac Catalina
+Tested platforms: Windows 10, Ubuntu 18.04 LTS, Mac Catalina. 
 Due to Qt requriment, it won't work under WSL2 in Windows 10. 
-With enhanced GUI support in on WSL2 on Windows 11, it may work (but not tested yet)
+With enhanced GUI support on WSL2 in Windows 11, it may work (but not tested yet)
 
 From sources
 ------------
 
-The sources for PatchView can be downloaded from the `Github repo`_.
+The sources for PatchView can be downloadeded from the `Github repo`_.
 
 You can either clone the public repository:
 
@@ -153,8 +153,7 @@ After saving your changes, close the app and restart it.
 
 Test dataset
 ------------------
-Test dataset can be download from Patchview's `Github repo`_, under `tests/data`
-You can set **RootDir** to that folder for easy browsing. 
+Test dataset can be downloaded from Patchview's `Github repo`_, under `tests/data` folder (You can set **RootDir** to that folder for easy browsing). 
 
 **Epy. recordings**:
 
@@ -169,4 +168,8 @@ used to test the automatic sorting functionality of `patchview`
 
 `test.ASC`: a morphology file in neurolucida format. It contains reconstruction of 
 an interneuron in hippcampus. 
+
+**NWB file**:
+
+`test.nwb`: a recording file in neurodata-without-borders format. 
 

@@ -766,7 +766,7 @@ class Data(object):
         fmt = bytearray(trace.DataFormat)[0]
         dtype = [np.int16, np.int32, np.float32, np.float64][fmt]
         dByte = [2, 4, 4, 8][fmt]
-        nItemsPerBlock = np.int(trace.InterleaveSizeS / dByte)
+        nItemsPerBlock = np.int32(trace.InterleaveSizeS / dByte)
         TotalBytes = trace.DataPoints * dByte
         # print('{:f}, {:f}'.format(trace.DataPoints, trace.InterleaveSizeS))
         if trace.DataPoints >= trace.InterleaveSizeS and trace.InterleaveSizeS != 0:

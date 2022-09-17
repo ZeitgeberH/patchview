@@ -10,9 +10,3 @@ from patchview.neurom.features import (
     get,
     register_neurite_feature,
 )
-
-warn(
-    "neurom.fst is being deprecated and will be removed in NeuroM v1.5.0,"
-    " replace it by neurom.features",
-    DeprecationWarning,
-)

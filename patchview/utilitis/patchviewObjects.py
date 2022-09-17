@@ -18,7 +18,7 @@ from pyqtgraph.widgets import MatplotlibWidget
 translate = QtCore.QCoreApplication.translate
 
 
-class FileModel(QtGui.QFileSystemModel):
+class FileModel(pg.QtWidgets.QFileSystemModel):
     """
     Class for file system model
     """
@@ -39,7 +39,7 @@ class FileModel(QtGui.QFileSystemModel):
         self.setRootPath(root_path)
 
 
-class sliceSelectionDialog(QtGui.QWidget):
+class sliceSelectionDialog(pg.QtWidgets.QWidget):
     def __init__(self, parent=None, items=None):
         super(sliceSelectionDialog, self).__init__(parent)
         self.items = items
@@ -72,7 +72,7 @@ class sliceSelectionDialog(QtGui.QWidget):
             self.sliceName.setText(str(text))
 
 
-class FileView(QtGui.QTreeView):
+class FileView(pg.QtWidgets.QTreeView):
     """
     Class for view of file system model
     """
@@ -232,7 +232,7 @@ class FileView(QtGui.QTreeView):
         self.frame.update_pul(file_path, dat_index=None, ext=ext)
 
 
-class SelectionView(pg.QtGui.QTreeWidget):
+class SelectionView(pg.QtWidgets.QTreeWidget):
     """Class for viewing selected .dat series"""
 
     def __init__(self, parent):
@@ -500,7 +500,7 @@ class cellROI(pg.EllipseROI):
         self.mainWindow.updateROI_table()
 
 
-class PulView(pg.QtGui.QTreeWidget):
+class PulView(pg.QtWidgets.QTreeWidget):
     """
     Class for viewing tree of pul file
     """
@@ -737,7 +737,7 @@ class PulView(pg.QtGui.QTreeWidget):
         self.frame.update_trace_plot()
 
 
-class OptionsView(QtGui.QWidget):
+class OptionsView(pg.QtWidgets.QWidget):
     """
     Class for view containing plotting options.
     """
@@ -909,7 +909,7 @@ class TableView(pg.TableWidget):
             super(TableView, self).keyPressEvent(event)
 
 
-class TabView(QtGui.QTabWidget):
+class TabView(pg.QtWidgets.QTabWidget):
     """
     Class for tab view.
     """
@@ -1176,7 +1176,7 @@ class miniEvent:
         self.init()
 
 
-class SplitView(QtGui.QSplitter):
+class SplitView(pg.QtWidgets.QSplitter):
     """A boiler plate for constructing multipanel tab.
     Top row may contain multiple figures with matplotlib backend
     Bottom row split horinzontally into two.
