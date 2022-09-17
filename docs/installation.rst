@@ -70,7 +70,7 @@ To launch the GUI, type:
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
-Note: PatchView use PyQt5 as its front-end. Pip installation may have compatible issue which may cause the following errors when launch
+**Note 1**: PatchView use PyQt5 as its front-end. Pip installation may have compatible issue which may cause the following errors when launch
 the GUI::
 
     qt.qpa.plugin: Could not find the Qt platform plugin "windows" in "". This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
@@ -88,6 +88,11 @@ then reinstall them via:
     $ pip install pyqt5 pyqtwebengine pyqt5-sip
 
 If this does not resolve the issue, please open a PatchView's github issue.
+
+**Note 2**
+Tested platforms: Windows 10, Ubuntu 18.04 LTS, Mac Catalina
+Due to Qt requriment, it won't work under WSL2 in Windows 10. 
+With enhanced GUI support in on WSL2 on Windows 11, it may work (but not tested yet)
 
 From sources
 ------------
@@ -141,7 +146,27 @@ PatchView use a Yaml file for its basic configuration.
 
 Open **patchview.yaml** with any text editor.  
 
-* **RootDir** is the root node for PatchView to search files. Leave it empty (**''**) if you want to include all drives in computer. 
+* **RootDir** is the root directory set for PatchView to list files. Leave it empty (**''**) if you want to include all drives in computer. 
 * **Protocols** are labels you used for series during recording. There are four default categories that PatchView uses to sort recorded series. Add any labels in the corresponding category if it is not already in the list.
 
 After saving your changes, close the app and restart it.
+
+Test dataset
+------------------
+Test dataset can be download from Patchview's `Github repo`_, under `tests/data`
+You can set **RootDir** to that folder for easy browsing. 
+
+**Epy. recordings**:
+
+`test.abf`: a whole-cell recording session in Axon binary file format (ABF).
+
+`test_singleFP.dat`: Ephy. recordings with one firing pattern session 
+
+`test_FP_Spon.dat`: Ephy. recordings with firing pattern, EPSP, EPSC recordings. This can be
+used to test the automatic sorting functionality of `patchview`
+
+**Morphology**:
+
+`test.ASC`: a morphology file in neurolucida format. It contains reconstruction of 
+an interneuron in hippcampus. 
+

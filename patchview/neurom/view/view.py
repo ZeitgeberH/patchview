@@ -93,7 +93,7 @@ class AnchoredHScaleBar(offsetbox.AnchoredOffsetbox):
         size_bar.add_artist(line)
         size_bar.add_artist(vline1)
         size_bar.add_artist(vline2)
-        txt = offsetbox.TextArea(label, minimumdescent=False)
+        txt = offsetbox.TextArea(label)
         self.vpac = offsetbox.VPacker(
             children=[size_bar, txt], align="center", pad=ppad, sep=sep
         )

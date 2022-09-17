@@ -67,7 +67,7 @@ from hdmf.build import BuildManager, TypeMap  # noqa: E402
 warnings.filterwarnings("ignore")
 
 patchview_dir, this_filename = os.path.split(__file__)
-__version__ = "0.2.5.1"
+__version__ = "0.2.5.2"
 
 class MainWindow(QtWidgets.QMainWindow):
     """
