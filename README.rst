@@ -1,9 +1,9 @@
-=========
+===============
 PatchView
-=========
-.. image:: https://img.shields.io/pypi/v/patchview.svg
+===============
+.. image:: https://img.shields.io/pypi/v/patchview.svg 
         :target: https://pypi.python.org/pypi/patchview
-
+      
 .. image:: https://img.shields.io/badge/python-3.8%2B-blue
         :target: https://www.python.org/downloads/release/python
         :alt: Python3.8
@@ -19,7 +19,7 @@ PatchView
         :target: https://opensource.org/licenses/BSD-3-Clause
         :alt: BSD-3-Clause
     
-
+.. image:: https://img.shields.io/pypi/dm/patchview?label=pypi%20downloads
 PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
 synaptic connection detection, morphological analysis and more.
 
