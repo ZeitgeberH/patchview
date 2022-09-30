@@ -5,7 +5,7 @@ Filters: ## filter cut off frequency for  Bessel or Butterworth filter. unit of 
 CleanUp: ## data clean-up criterias
     minimalSweeps: 3 ## at least three sweeps to use!
 Protocols:  ## existing patch protocols and alias
-    Firing pattern: ['FP', 'fp', 'Firing Pattern', 'firing pattern','AllCurrentClamp']
+    Firing pattern: ['FP', 'fp', 'Firing Pattern', 'firing pattern','AllCurrentClamp','ap','ramp']
     Connection: ['STI', 'Sti', 'Cc', 'cc']  ## check connections
     Retina: ['Light_stimulation', 'light stimulation']  ## check light response
     Spontaneous: ['EPSP', 'EPSPs','EPSC', 'EPSCs', 'sEPSP','sEPSPs','sEPSC','sEPSCs', \
