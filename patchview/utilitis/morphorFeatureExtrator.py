@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import patchview.neurom as morphor_nm
+from patchview.neurom.core.types import NeuriteType
+from patchview.neurom import features
 
 def getSomaStats(n):
     ''' Basic statistics for soma
@@ -62,3 +64,13 @@ def extractMorhporFeatures(n, df_summary=None):
         df.to_records(index=False)
     )  ## format dataframe for using in QtTable widget
     return df
+
+def sholl_analysis(n, step_size=10):
+    ''' sholl analysis
+    n: NeuroM neuron object with neurites
+    step_size: step size for analysis
+    output: frequency and bins (in um)
+    '''
+    freq = morphor_nm.get("sholl_frequency", n, neurite_type=NeuriteType.all, step_size=step_size)
+    bins =  list(n.soma.radius + np.arange(len(freq))*step_size)
+    return freq, bins

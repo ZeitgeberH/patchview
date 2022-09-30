@@ -32,7 +32,7 @@ class FileModel(pg.QtWidgets.QFileSystemModel):
         )
 
         # filter out non dats and disable showing
-        self.setNameFilters(["*.dat", "*.abf"])
+        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC"])
         self.setNameFilterDisables(False)
 
         # set root
@@ -205,7 +205,7 @@ class FileView(pg.QtWidgets.QTreeView):
         # check extension
         _, ext = os.path.splitext(file_path)
         if ext == "":
-            print("this is a folder")
+            # print("this is a folder")
             self.currentPath = file_path
         elif ext == ".dat":
             self.currentFile = file_path
@@ -228,8 +228,11 @@ class FileView(pg.QtWidgets.QTreeView):
         #        os.chdir(self.frame.root)
         # check extension
         _, ext = os.path.splitext(file_path)
-        self.frame.clearAllTrees()
-        self.frame.update_pul(file_path, dat_index=None, ext=ext)
+        if ext in ['.asc','.ASC']:
+            self.frame.prepareTree(file_path)
+        else:
+            self.frame.clearAllTrees()
+            self.frame.update_pul(file_path, dat_index=None, ext=ext)
 
 
 class SelectionView(pg.QtWidgets.QTreeWidget):
