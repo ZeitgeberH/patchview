@@ -67,12 +67,13 @@ analysis for the whole series. The results are shown in two formats in the "Firi
 *multiple series FP analysis*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Load all series of interests using method described in **import multiple files simultaneously** section. Invoke firing 
-pattern analysis from the contex menu of the "Firing pattern" tab in the first middle left panel.
+pattern analysis from the context menu of the "Firing pattern" tab in the first middle left panel.
 
 **Monosynaptic connection detection**
 -------------------------------------------
-Same loading method as the multiple series FP analysis. Invoke **Synaptic connections (Batch)** from the context menu of 
-the "Connection" tab in the first middle left panel.
+Same loading method as the multiple series FP analysis. If the files are successfully loaded, there should be a list of 
+files which has the firing pattern recorded in the `Connection` tab. Invoke **Synaptic connections (Batch)** from the context menu of 
+the `Connection`` tab in the first middle left panel.
 
 **Postsynaptic event (PSP/PSC) analysis**
 -------------------------------------------
@@ -123,15 +124,15 @@ from here.
 
 **Morphological data**
 ---------------------------
-Click the |tree| icon in the toolbar section to load ASC file.  
+Patchview currently only support neurolucida ASC files. These files should be listed in the file browser panel.
+Double clicking the file would load the file. Visualization and further analysis results are shown in the `Morphology` tab.
 
-The bottom left panels have options for draw contours or update cell names (for multiple neurons).
-To export a high resolution image, use the export option in this panel,
-in stead of the plot widget's build-in save button.
+Dependent on the file, Patchview can perform:
 
-.. |tree| image:: resources/images/tree.png
-    :height: 25px
+* **Sholl analysis**: if the reconstruction has at least one neurite, this will perform Sholl analysis (counting neurite 
+   numbers in a ring from certain soma distance). A line plot (count vs distance) is shown in the `Figures` tab. Try `test.ASC`.
+  
+*  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will
+  measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
-.. image:: resources/images/morphor_tree.png
-    :width: 800
-    :alt: Alternative text
+* **pair-wise distance of multiple somas**: this is automatically down if the reconstruction has multiple somas in it (check the test file: `test_multiSoma.ASC`)
