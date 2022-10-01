@@ -164,10 +164,17 @@ Test dataset can be downloaded from Patchview's `Github repo`_, under `tests/dat
 `test_FP_Spon.dat`: Ephy. recordings with firing pattern, EPSP, EPSC recordings. This can be
 used to test the automatic sorting functionality of `patchview`
 
+`connection_tests`: In this folder, there are eight files from a series of multi-patching experiments in which eight neurons 
+were patched and recorded simultaneously. In each experiment, one of the neurons was simulated and the rest were recorded in 
+current clamped mode. This is a protocol for testing synaptic connections between those neurons. 
+
 **Morphology**:
 
 `test.ASC`: a morphology file in neurolucida format. It contains reconstruction of 
 an interneuron in hippcampus. 
+
+`test_multiSoma.ASC`: a morphology file in neurolucida format. It contains reconstruction 
+of multiple neurons from a single brain slice. 
 
 **NWB file**:
 

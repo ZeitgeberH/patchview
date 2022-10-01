@@ -1,4 +1,5 @@
 colorcet
+appdirs
 Pillow
 pynwb
 tqdm

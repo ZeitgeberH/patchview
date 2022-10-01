@@ -17,7 +17,6 @@ from scipy import signal
 import scipy.stats as stats
 from scipy.optimize import curve_fit
 import seaborn as sns
-
 sns.despine()
 from patchview.ephys import ephys_features as ephys_ft
 from patchview.ephys import ephys_extractor as efex
@@ -66,8 +65,9 @@ from hdmf.spec import NamespaceCatalog  # noqa: E402
 from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  # noqa: E402
 from hdmf.build import BuildManager, TypeMap  # noqa: E402
 warnings.filterwarnings("ignore")
-
+from appdirs import *
 patchview_dir, this_filename = os.path.split(__file__)
+appname = "Patchview"
 __version__ = "0.2.5.2"
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -89,6 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         #        self.resize(1200, 800)
         self.showMaximized()
+        
+
 
     def create_mainWindow(self):
         """Configure Qt GUI:
@@ -3183,11 +3185,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.user = "MH"
         else:
             self.user = user
+        self.useConfigDir = user_config_dir(appname)
         self.loadUserParamters(user)
 
     def loadUserParamters(self, user):
-        DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")
-        pars = loadYAML(DATA_PATH)
+        confilePath  = os.path.join(self.useConfigDir,"patchview.yaml")
+        if not os.path.exists(self.useConfigDir):
+            import shutil 
+            os.makedirs(self.useConfigDir)
+            DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")    
+            shutil.copy(DATA_PATH, confilePath)
+
+        pars = loadYAML(confilePath)
         parameters = {}
         # parameters['HF'] = pars['Filters']['High cutoff']
         parameters["filter_option"] = pars["Filters"]["Option"]
