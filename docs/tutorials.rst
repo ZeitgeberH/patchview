@@ -19,7 +19,7 @@ left panel. Click the arrow at start of the name to expand.
 **Note**: this method assume that you follow a naming convention: date-slice#-cell#. For example, 20220202s1c1.dat, means
 this file was recorded on date 2022/02/02 from slice 1 and cell 1. 
 
-Sometimes, you may record multiple cells from a single slice. Each cell's recording may be stored in a separate file. 
+Sometimes, you may record multiple cells from a single slice (check test data in `tests\data\connection_tests`). Each cell's recording may be stored in a separate file. 
 Or, they were stored in a single file. And You may also record multiple slices from a single day.
 The following method would enable you importing cells from a single slice (possibly in multiple files). 
 
@@ -31,7 +31,7 @@ An advantage of loading data in this way is that PatchView will try to sort seri
 in a multi-patch experiment test for firing pattern, connection and spontaneous event. In Heka patchmaster, you can specify
 a unique label for each protocol: for example, 'FP' for firing pattern; 'EPSP' for excitatory post synaptic potential.
 PatchView would read those labels and sort each recorded series into corresponding tabs shown in the first middle panel.
-Currently three tabs are available: "Firing pattern", "Connection", "Spontaneous".
+Currently three tabs are available: "Firing pattern", "Connection", "Spontaneous". Once data is loaded and sorted, the context menu provides entry point to additional analysis (see below).  
 
 **Interactive with figure planel**
 -------------------------------------
@@ -72,8 +72,8 @@ pattern analysis from the context menu of the "Firing pattern" tab in the first 
 **Monosynaptic connection detection**
 -------------------------------------------
 Same loading method as the multiple series FP analysis. If the files are successfully loaded, there should be a list of 
-files which has the firing pattern recorded in the `Connection` tab. Invoke **Synaptic connections (Batch)** from the context menu of 
-the `Connection`` tab in the first middle left panel.
+files of firing pattern in the `Connection` tab. Invoke **Synaptic connections (Batch)** from the context menu of 
+the `Connection`` tab in the first middle left panel. After a few seconds, GUI would automatically switch to `Connections` view to show traces with possible connection.
 
 **Postsynaptic event (PSP/PSC) analysis**
 -------------------------------------------
