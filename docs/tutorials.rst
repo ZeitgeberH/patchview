@@ -127,12 +127,14 @@ from here.
 Patchview currently only support neurolucida ASC files. These files should be listed in the file browser panel.
 Double clicking the file would load the file. Visualization and further analysis results are shown in the `Morphology` tab.
 
-Dependent on the file, Patchview can perform:
+Dependent on the content of the file, Patchview can perform:
 
-* **Sholl analysis**: if the reconstruction has at least one neurite, this will perform Sholl analysis (counting neurite 
-   numbers in a ring from certain soma distance). A line plot (count vs distance) is shown in the `Figures` tab. Try `test.ASC`.
+* **pairwise distance of multiple somas**: this is automatically done if the reconstruction has multiple somas in it (check the test file: `test_multiSoma.ASC`)
+
+*  **Update cell names**: this can be done for a multi-soma file. The `Name` column in the `Summary` table can be edited. After the editing, clicking `Update cell names` will update the Pair names in the  pairwise distance table  in `Distance (um)` tab. 
   
-*  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will
-  measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
+* **Sholl analysis**: if the reconstruction has at least one neurite, this will perform Sholl analysis (counting neurite numbers in a ring from certain soma distance). A line plot (count vs distance) is shown in the `Figures` tab. Try `test.ASC`.
+  
+*  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
-* **pair-wise distance of multiple somas**: this is automatically down if the reconstruction has multiple somas in it (check the test file: `test_multiSoma.ASC`)
+**Note**: the figure sometimes (more so under Ubuntu) does not automatically refresh. If it happens, drag the border between upper and lower panels to manually refresh.
