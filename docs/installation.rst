@@ -190,3 +190,7 @@ of multiple neurons from a single brain slice.
 Tests
 -----------------
 Run pytest in the `tests`` folder 
+
+.. code-block:: console
+
+    $ python -m pytest .

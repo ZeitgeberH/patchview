@@ -42,7 +42,7 @@ setup(
     install_requires=requirements,
     extras_require={'dev': dev_requirements},
     license="BSD 3-Clause license",
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     include_package_data=True,
     keywords='patchview',
     name='patchview',
@@ -52,7 +52,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/zeitgeberH/patchview',
-    version='0.2.5.2',
+    version='0.2.5.5',
     zip_safe=False,
     entry_points={
         'gui_scripts': [

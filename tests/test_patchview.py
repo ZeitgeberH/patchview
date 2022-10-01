@@ -40,6 +40,8 @@ def writeNwb():
 def readNwb():
     ''' Read back NWB file
     '''
+    if not os.path.exists(os.path.join(_FILEPATH,'data',"test.nwb")):
+        writeNwb()
     try:
         io = NWBHDF5IO(os.path.join(_FILEPATH,'data',"test.nwb"), 'r') 
         nwbfile = io.read()

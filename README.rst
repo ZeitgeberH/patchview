@@ -20,9 +20,9 @@ PatchView
         :alt: BSD-3-Clause
     
 .. image:: https://img.shields.io/pypi/dm/patchview?label=pypi%20downloads
+
 PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
 synaptic connection detection, morphological analysis and more.
-
 
 * Free software: BSD 3-Clause license
 * Documentation: https://patchview.readthedocs.io.
