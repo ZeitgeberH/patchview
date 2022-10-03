@@ -68,7 +68,7 @@ warnings.filterwarnings("ignore")
 from appdirs import *
 patchview_dir, this_filename = os.path.split(__file__)
 appname = "Patchview"
-__version__ = "0.2.5.5"
+__version__ = "0.2.6.0"
 
 class MainWindow(QtWidgets.QMainWindow):
     """

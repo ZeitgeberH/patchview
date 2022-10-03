@@ -167,6 +167,8 @@ Test dataset can be downloaded from Patchview's `Github repo`_, under `tests/dat
 
 `test_singleFP.dat`: Ephy. recordings with one firing pattern session 
 
+`test_couplingRatio.dat`: Ephy. recordings with eight patched neurons.  
+
 `test_FP_Spon.dat`: Ephy. recordings with firing pattern, EPSP, EPSC recordings. This can be
 used to test the automatic sorting functionality of `patchview`
 

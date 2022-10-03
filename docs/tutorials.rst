@@ -140,11 +140,16 @@ Dependent on the content of the file, Patchview can perform:
 *  **Update cell names**: this can be done for a multi-soma file. The `Name` column in the `Summary` table can be edited. After the editing, clicking `Update cell names` will update the Pair names in the  pairwise distance table  in `Distance (um)` tab. 
   
 * **Sholl analysis**: if the reconstruction has at least one neurite, this will perform Sholl analysis (counting neurite numbers in a ring from certain soma distance). A line plot (count vs distance) is shown in the `Figures` tab. Try `test.ASC`.
-  
+
+.. image:: resources/images/morphor_tree.png
+    :width: 800
+    :alt: Alternative text
+
+
 *  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
 .. image:: resources/images/measurePiaToSomas.png
-    :width: 400
+    :width: 800
     :alt: Alternative text
 
 **Note**: the figure sometimes (more so under Ubuntu) does not automatically refresh. If it happens, drag the border between upper and lower panels to manually refresh.
@@ -159,15 +164,22 @@ The first tool item |mouseInteract| is to switch mouse interation mode as explai
 The second tool item |sliceview| is to load slice imaging into the tab "Slice view".
 
 The third |CR|  and fourth item  |corr| is to calculate correlations values in a multi-patch experiment: an index to quantify voltage dependent pair-wise Pearson correlation between raw voltage traces within a user specified time window.
+Example images below could be reproduced by doing CR with the test data `test_couplingRatio.dat` (Series2)
+
+Note: significant coupling is highlighted with red title (from chan 8 to chan2 in this case).
+
+.. image:: resources/images/test_CR.png
+    :width: 600
+    :alt: Alternative text
 
 .. |mouseInteract| image:: resources/icons/rectangle.png 
     :height: 20px
 .. |sliceview| image:: resources/icons/neuron.png 
     :height: 20px
 .. |CR| image:: resources/icons/GP1.png 
-    :height: 15px
+    :height: 20px
 .. |corr| image:: resources/icons/GPcorr.png
-    :height: 15px
+    :height: 20px
 
 **Exporting data**
 ---------------------------
