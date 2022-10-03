@@ -244,14 +244,16 @@ class MainWindow(QtWidgets.QMainWindow):
             "Firing pattern"
         )  ## show FP representive curves
         splitViewTab_FP.addParameterToLeftTab("Data selection", AllMyPars.fp_analysis)
+        spdet_toolTips = AllMyPars.fp_analysis_spikeDetection_help[0]["children"]
         splitViewTab_FP.addParameterToLeftTab(
             "Spike detection",
             AllMyPars.fp_analysis_spikeDetection,
             self.spike_detection_event,
+            spdet_toolTips
         )
-        splitViewTab_FP.addParameterToLeftTab(
-            "Spike detection help", AllMyPars.fp_analysis_spikeDetection_help
-        )
+        # splitViewTab_FP.addParameterToLeftTab(
+        #     "Spike detection help", AllMyPars.fp_analysis_spikeDetection_help
+        # )
         splitViewTab_FP.bottomLeft_tabview.setCurrentIndex(
             1
         )  # default showing tab for "spike detection"
@@ -3827,7 +3829,7 @@ class MainWindow(QtWidgets.QMainWindow):
             #            self.plotSeriesAverage(time, avg, seriesIdx)
             self.plotSeriesVariations(time, data, seriesIdx, traces)
         return 1
-        
+
     def VisualAction2_clicked(self):
         """plot averaged traces at series level. when the protocol is for connection pattern"""
         if self.currentPulseTree.filetype == ".dat":

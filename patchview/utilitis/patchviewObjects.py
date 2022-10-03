@@ -1034,7 +1034,7 @@ class ParameterView:
         self, parent, name="params", type="group", children=None, readonly=False
     ):
         self.parent = parent
-        self.params = children  ## actual paratmers
+        self.params = children  ## actual parameters
         self.state = []  ## save and restore
         self.p = Parameter.create(
             name=name, type=type, children=children, readonly=readonly
@@ -1261,7 +1261,7 @@ class SplitView(pg.QtWidgets.QSplitter):
             self.tables.update({tableNames: table})
             self.bottomRight_tabview.addTab(table, tableNames)
 
-    def addParameterToLeftTab(self, title, pars, func=None):
+    def addParameterToLeftTab(self, title, pars, func=None, tooltips=None):
         """use this to add a parameter tree.
         title: tab name for this table
         pars: parameters to be loaded into this tree widget
@@ -1274,10 +1274,18 @@ class SplitView(pg.QtWidgets.QSplitter):
         # self.fpParTree_data_view.p.sigTreeStateChanged.connect(self.fpParTree_stateChange)
         # self.thresholdPar.sigValueChanged.connect(self.thresholdParChange)
         parsTree.setParameters(parsTree_view.p, showTop=False)
+        if tooltips is not None:
+            parsTree = self.addTooltips(parsTree, tooltips)
         self.bottomLeft_tabview.addTab(parsTree, title)  ##
         self.parTreeViews[title] = parsTree_view
         self.parsTree_values_init[title] = False
-
+    
+    def addTooltips(self, parTree, tooltips):
+        ''' Add tooltips for parameter tree'''
+        for idx, tt in enumerate(tooltips):
+            parTree.children()[0].children()[idx].setToolTip(tt['value'])
+        return parTree
+    
     def setParTreePars(self, pars, index=0, title="Data selection", func=None):
         self.bottomLeft_tabview.setCurrentIndex(index)
         parsTree = ParameterTree()
