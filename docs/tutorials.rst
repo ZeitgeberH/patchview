@@ -9,7 +9,7 @@ Patchview provides multiple ways to import data.
 
 *import single file*
 ^^^^^^^^^^^^^^^^^^^^^^
-Use the file browser to expand (click the arrow) directories. Once located the file (.dat or .abf), double clicking
+Use the file browser to expand (click the arrow) directories. Once located the file (.dat, .abf for electrophysiology data; .asc for Morphological data), double clicking
 the file. The contents of this file will be represented as a hierarchical tree in a tab named "Current tree" in the
 left panel. Click the arrow at start of the name to expand. 
 
@@ -33,7 +33,7 @@ a unique label for each protocol: for example, 'FP' for firing pattern; 'EPSP' f
 PatchView would read those labels and sort each recorded series into corresponding tabs shown in the first middle panel.
 Currently three tabs are available: "Firing pattern", "Connection", "Spontaneous". Once data is loaded and sorted, the context menu provides entry point to additional analysis (see below).  
 
-**Interactive with figure planel**
+**GUI interactions**
 -------------------------------------
 
 **Left button**:  Left mouse button have two modes of interaction: Rect mode |mouseMode1| and Pan mode |mouseMode2|. 
@@ -67,13 +67,18 @@ analysis for the whole series. The results are shown in two formats in the "Firi
 *multiple series FP analysis*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Load all series of interests using method described in **import multiple files simultaneously** section. Invoke firing 
-pattern analysis from the context menu of the "Firing pattern" tab in the first middle left panel.
+pattern analysis from the context menu of the "Firing patterns (Batch)" tab in the first middle left panel. This will perform firing pattern analysis for all ("batch") series listed .
 
 **Monosynaptic connection detection**
 -------------------------------------------
-Same loading method as the multiple series FP analysis. If the files are successfully loaded, there should be a list of 
+Same loading method as the multiple series FP analysis. If the files are successfully loaded (see figure below), there should be a list of 
 files of firing pattern in the `Connection` tab. Invoke **Synaptic connections (Batch)** from the context menu of 
 the `Connection`` tab in the first middle left panel. After a few seconds, GUI would automatically switch to `Connections` view to show traces with possible connection.
+
+.. image:: resources/images/connectionTraces_loaded2.png
+    :width: 800
+    :alt: Alternative text
+
 
 **Postsynaptic event (PSP/PSC) analysis**
 -------------------------------------------
@@ -138,3 +143,7 @@ Dependent on the content of the file, Patchview can perform:
 *  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
 **Note**: the figure sometimes (more so under Ubuntu) does not automatically refresh. If it happens, drag the border between upper and lower panels to manually refresh.
+
+**Exporting data**
+---------------------------
+File menu provides two exporting options. "Export .pkl" exports currently selected series into a Python pickle object. "Export .NWB" exports into neurodata-without-borders format.
