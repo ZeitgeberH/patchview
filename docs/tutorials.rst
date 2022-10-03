@@ -49,9 +49,10 @@ those two modes.
 * Right button drag: Scales the scene. Dragging left/right scales horizontally; dragging up/down scales vertically (although some scenes will have their x/y scales locked together). If there are x/y axes visible in the scene, then right-dragging over the axis will _only_ affect that axis. 
 * Right button clicks: Clicking the right button in most cases will show a context menu with a variety of options depending on the object(s) under the mouse cursor. 
 
-.. |mouseMode1| image:: resources/images/rectangle.png
+
+.. |mouseMode1| image:: resources/icons/rectangle.png
     :height: 25px
-.. |mouseMode2| image:: resources/images/navigation.png
+.. |mouseMode2| image:: resources/icons/navigation.png
     :height: 25px
 
 **Firing Pattern analysis**
@@ -76,7 +77,7 @@ files of firing pattern in the `Connection` tab. Invoke **Synaptic connections (
 the `Connection`` tab in the first middle left panel. After a few seconds, GUI would automatically switch to `Connections` view to show traces with possible connection.
 
 .. image:: resources/images/connectionTraces_loaded2.png
-    :width: 800
+    :width: 300
     :alt: Alternative text
 
 
@@ -142,8 +143,34 @@ Dependent on the content of the file, Patchview can perform:
   
 *  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
+.. image:: resources/images/measurePiaToSomas.png
+    :width: 400
+    :alt: Alternative text
+
 **Note**: the figure sometimes (more so under Ubuntu) does not automatically refresh. If it happens, drag the border between upper and lower panels to manually refresh.
+
+**Toolbar items**
+------------------------
+
+Simple explanation for each icon will be show as tooltip when Hovering over each icon.
+
+The first tool item |mouseInteract| is to switch mouse interation mode as explained above. 
+
+The second tool item |sliceview| is to load slice imaging into the tab "Slice view".
+
+The third |CR|  and fourth item  |corr| is to calculate correlations values in a multi-patch experiment: an index to quantify voltage dependent pair-wise Pearson correlation between raw voltage traces within a user specified time window.
+
+.. |mouseInteract| image:: resources/icons/rectangle.png 
+    :height: 20px
+.. |sliceview| image:: resources/icons/neuron.png 
+    :height: 20px
+.. |CR| image:: resources/icons/GP1.png 
+    :height: 15px
+.. |corr| image:: resources/icons/GPcorr.png
+    :height: 15px
 
 **Exporting data**
 ---------------------------
-File menu provides two exporting options. "Export .pkl" exports currently selected series into a Python pickle object. "Export .NWB" exports into neurodata-without-borders format.
+File menu provides two exporting options. `Export .pkl` exports currently selected series into a Python pickle object. `Export .NWB` exports into neurodata-without-borders format.
+
+

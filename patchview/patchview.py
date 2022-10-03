@@ -800,10 +800,9 @@ class MainWindow(QtWidgets.QMainWindow):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.cla()
-            # ax.plot(sholl_bins, sholl_dist)
             sns.set_style("whitegrid")
             ax = sns.lineplot(x=sholl_bins, y=sholl_dist, ax=ax)
-            ax.set(xlabel='Distance from soma (um)', ylabel="#points",\
+            ax.set(xlabel='Distance from soma (um)', ylabel="Num. points",\
             title="Sholl frequency")
             ax.spines["right"].set_visible(False)
             ax.spines["top"].set_visible(False)
