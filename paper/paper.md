@@ -73,6 +73,6 @@ Right: multiple plots during a typical analysis). The toolbar is seen on the far
 
 We acknowledge open-source packages (please see the [documentation]((https://patchview-doc.readthedocs.io/en/latest/)) for the detailed list) that are used in PatchView. We would like to thank lab members in Dr. Xiaolong Jiang's lab for their feedback in using PatchView for their data analysis. The work is supported by the grants R01 MH122169 and R01 MH120404 (to XJ) from the National Institutes of Health.
 
-We thank JOSS editor (@jmschrei) and reviewers (@janfreyberg & @mstimberg) for their very useful comments and suggestions during the JOSS review process. 
+We thank JOSS editor and reviewers for their very useful comments and suggestions during the JOSS review process. 
 
 # References
