@@ -17,10 +17,11 @@ PatchView
 
 .. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
         :target: https://opensource.org/licenses/BSD-3-Clause
-        :alt: BSD-3-Clause
-    
-.. image:: https://img.shields.io/pypi/dm/patchview?label=pypi%20downloads
+        :alt: BSD-3-Clause    
 
+.. image:: https://joss.theoj.org/papers/10.21105/joss.04706/status.svg
+   :target: https://doi.org/10.21105/joss.04706
+.. image:: https://img.shields.io/pypi/dm/patchview?label=pypi%20downloads   
 PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
 synaptic connection detection, morphological analysis and more.
 
@@ -40,5 +41,6 @@ these tools or writing any Python scripts.
 * Performing analysis on intrinsic membrane properties, action potential detection, firing pattern analysis.
 * Synaptic connection analysis.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
+
 
 
