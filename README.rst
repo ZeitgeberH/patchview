@@ -43,4 +43,8 @@ these tools or writing any Python scripts.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
 
+Citation
+---------
+If you find our work useful for your research, please cite:
 
+    Hu et al., (2022). PatchView: A Python Package for Patch-clamp Data Analysis and Visualization. Journal of Open Source Software, 7(78), 4706, https://doi.org/10.21105/joss.04706
