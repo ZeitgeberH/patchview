@@ -17,7 +17,6 @@ from scipy import signal
 import scipy.stats as stats
 from scipy.optimize import curve_fit
 import seaborn as sns
-
 sns.despine()
 from patchview.ephys import ephys_features as ephys_ft
 from patchview.ephys import ephys_extractor as efex
@@ -37,6 +36,11 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
 )
 from patchview.utilitis import fitFuncs
+<<<<<<< HEAD
+=======
+from patchview.utilitis.morphorFeatureExtrator import (
+    getSomaStats, extractMorhporFeatures, sholl_analysis)
+>>>>>>> main
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
@@ -68,8 +72,14 @@ from hdmf.spec import NamespaceCatalog
 from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  
 from hdmf.build import BuildManager, TypeMap
 warnings.filterwarnings("ignore")
-
+from appdirs import *
 patchview_dir, this_filename = os.path.split(__file__)
+<<<<<<< HEAD
+=======
+appname = "Patchview"
+__version__ = "0.2.6.0"
+
+>>>>>>> main
 class MainWindow(QtWidgets.QMainWindow):
     """
     Main frame.
@@ -89,6 +99,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         #        self.resize(1200, 800)
         self.showMaximized()
+        
+
 
     def create_mainWindow(self):
         """Configure Qt GUI:
@@ -242,14 +254,16 @@ class MainWindow(QtWidgets.QMainWindow):
             "Firing pattern"
         )  ## show FP representive curves
         splitViewTab_FP.addParameterToLeftTab("Data selection", AllMyPars.fp_analysis)
+        spdet_toolTips = AllMyPars.fp_analysis_spikeDetection_help[0]["children"]
         splitViewTab_FP.addParameterToLeftTab(
             "Spike detection",
             AllMyPars.fp_analysis_spikeDetection,
             self.spike_detection_event,
+            spdet_toolTips
         )
-        splitViewTab_FP.addParameterToLeftTab(
-            "Spike detection help", AllMyPars.fp_analysis_spikeDetection_help
-        )
+        # splitViewTab_FP.addParameterToLeftTab(
+        #     "Spike detection help", AllMyPars.fp_analysis_spikeDetection_help
+        # )
         splitViewTab_FP.bottomLeft_tabview.setCurrentIndex(
             1
         )  # default showing tab for "spike detection"
@@ -417,10 +431,17 @@ class MainWindow(QtWidgets.QMainWindow):
             editable=True,
             sortable=False,
         )
+<<<<<<< HEAD
         self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
         splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
 
         
+=======
+
+        self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
+        splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
+
+>>>>>>> main
         splitViewTab_morph.addParameterToLeftTab(
             "Analysis", AllMyPars.Morphor_analysis, self.morph_analysis_event
         )
@@ -656,7 +677,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph.matplotViews["2D"].getFigure().set_size_inches(
             5, 5, forward=False
         )
+<<<<<<< HEAD
         neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
+=======
+        neurons, custom_data = morphor_nm.load_neuron(fname)
+        self.pia = None
+>>>>>>> main
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.clf()
         ax2D = fig2D.add_subplot(111)
@@ -698,9 +724,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.matplotViews["2D"].draw()
             xlim1 = ax2D.xaxis.get_data_interval().copy()
             ylim1 = ax2D.yaxis.get_data_interval().copy()
+<<<<<<< HEAD
 
             if len(neurons.custom_data) > 0:
                 for datablock in neurons.custom_data:
+=======
+            if len(custom_data) > 0:
+                for datablock in custom_data:
+>>>>>>> main
                     d = datablock.data_block
                     if d[0][4] == 8:  ## PIA, just draw lines
                         ax2D.plot(d[:, 0], d[:, 1], "k", label="Pia")
@@ -726,13 +757,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].show()
     
             self.updateInterCellDistance()
-
+            self.neuronMorph =  None ## no dendrites for further analysis
         else:  ## single neuron with dendtrite and/or axons
 
             morphor_viewer.draw(
                 neurons, mode="2d", realistic_diameters=realDia, fig=fig2D, ax=ax2D,
                 contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
             )
+            self.neuronMorph =  neurons ## store dendrites for further analysis
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
             ax2D.set_title("{0}".format(fname), fontsize=12, color="k")
@@ -757,6 +789,27 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.splitViewTab_morph.matplotViews['3D'].draw()
         self.neuronMorph = neurons
         self.splitViewTab_morph.show()
+
+    def update_sholl(self):
+        if self.neuronMorph is not None:
+            sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph)
+            
+            fig = self.morphAnaFigs_matplotView.getFigure()
+            fig.clf()
+            ax = fig.add_subplot(111)
+            ax.cla()
+            sns.set_style("whitegrid")
+            ax = sns.lineplot(x=sholl_bins, y=sholl_dist, ax=ax)
+            ax.set(xlabel='Distance from soma (um)', ylabel="Num. points",\
+            title="Sholl frequency")
+            ax.spines["right"].set_visible(False)
+            ax.spines["top"].set_visible(False)
+            fig.tight_layout()
+            self.morphAnaFigs_matplotView.draw()
+            self.morphAnaFigs_matplotView.canvas.draw()
+            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(3)
+        else:
+            print('Not a morphological object for sholl analysis')
 
     def updateSliceView(self):
         if hasattr(self, "slice_viewROIs"):
@@ -871,18 +924,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addToolBar(
             2, self.toolbar
         )  # https://doc.qt.io/qt-5/qt.html#ToolBarArea-enum
-        self.toolbar.addSeparator()
-        self.toolbar.addSeparator()
-        self.tooglesettingsAction = pg.QtGui.QAction(
-            pg.QtGui.QIcon(global_icon), "Global settings"
-        )
-        self.tooglesettingsAction.setShortcut("Alt+s")
-        self.tooglesettingsAction.setStatusTip("Change/View settings")
-        #        self.tooglesettingsAction.triggered.connect(self.settings_clicked)
-        self.toolbar.addAction(self.tooglesettingsAction)
-        for j in range(3):
-            self.toolbar.addSeparator()
-            self.toolbar.addSeparator()
+ 
         self.toogleMouseModePanAction = pg.QtGui.QAction(
             pg.QtGui.QIcon(rect_icon), "Mouse Mode"
         )
@@ -891,26 +933,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toogleMouseModePanAction.triggered.connect(self.MouseMode_clicked)
         self.toolbar.addAction(self.toogleMouseModePanAction)
 
-        self.toogleDetectSpikeAction = pg.QtGui.QAction(
-            pg.QtGui.QIcon(spk_icon), "Firing pattern"
-        )
-        self.toogleDetectSpikeAction.setShortcut("Alt+a")
-        self.toogleDetectSpikeAction.setStatusTip("Firing pattern")
-        self.toogleDetectSpikeAction.triggered.connect(self.detectSpikes_clicked)
-        self.toolbar.addAction(self.toogleDetectSpikeAction)
+        # self.toogleDetectSpikeAction = pg.QtGui.QAction(
+        #     pg.QtGui.QIcon(spk_icon), "Firing pattern"
+        # )
+        # self.toogleDetectSpikeAction.setShortcut("Alt+a")
+        # self.toogleDetectSpikeAction.setStatusTip("Firing pattern")
+        # self.toogleDetectSpikeAction.triggered.connect(self.detectSpikes_clicked)
+        # self.toolbar.addAction(self.toogleDetectSpikeAction)
 
-        for j in range(3):
-            self.toolbar.addSeparator()
-            self.toolbar.addSeparator()
-        self.exportAction = pg.QtGui.QAction(
-            pg.QtGui.QIcon(connection2_icon), "Connectivtiy"
-        )
-        self.exportAction.setShortcut("Alt+e")
-        self.exportAction.setStatusTip("Connectivtiy")
-        self.exportAction.triggered.connect(self.exportConnectionFig_clicked)
-        self.toolbar.addAction(self.exportAction)
+        # self.exportAction = pg.QtGui.QAction(
+        #     pg.QtGui.QIcon(connection2_icon), "Connectivtiy"
+        # )
+        # self.exportAction.setShortcut("Alt+e")
+        # self.exportAction.setStatusTip("Connectivtiy")
+        # self.exportAction.triggered.connect(self.exportConnectionFig_clicked)
+        # self.toolbar.addAction(self.exportAction)
 
-        self.toolbar.addSeparator()
         self.importSlicetAction = pg.QtGui.QAction(
             pg.QtGui.QIcon(neuron_icon), "Import slice image"
         )
@@ -919,15 +957,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.importSlicetAction.triggered.connect(self.importSlice_clicked)
         self.toolbar.addAction(self.importSlicetAction)
 
-        for j in range(5):
-            self.toolbar.addSeparator()
-            self.toolbar.addSeparator()
         gp1_icon = os.path.join(patchview_dir, "Data", "icons", "GP1.png")
         self.gpAction = pg.QtGui.QAction(pg.QtGui.QIcon(gp1_icon), "Coupling ratio")
         # self.exportAction.setShortcut("Alt+e")
         self.gpAction.setStatusTip("Analysis gap junction")
         self.gpAction.triggered.connect(self.gp_clicked)
         self.toolbar.addAction(self.gpAction)
+
         GPcorr_icon = os.path.join(patchview_dir, "Data", "icons", "GPcorr.png")
         self.gpAction2 = pg.QtGui.QAction(pg.QtGui.QIcon(GPcorr_icon), "correlations")
         # self.exportAction.setShortcut("Alt+e")
@@ -935,20 +971,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gpAction2.triggered.connect(self.gpc_clicked)
         self.toolbar.addAction(self.gpAction2)
 
-        for j in range(5):
-            self.toolbar.addSeparator()
-            self.toolbar.addSeparator()
-        tree_icon = os.path.join(patchview_dir, "Data", "icons", "tree.png")
-        self.importTreeAction = pg.QtGui.QAction(
-            pg.QtGui.QIcon(tree_icon), "Import ASC file"
-        )
-        # self.exportAction.setShortcut("Alt+e")
-        self.importTreeAction.setStatusTip("import .asc file")
-        self.importTreeAction.triggered.connect(self.importTree_clicked)
-        self.toolbar.addAction(self.importTreeAction)
-
-    def importTree_clicked(self):
-        self.visulization_view.setCurrentIndex(5)
+    def importTree_clicked(self):        
         dialog = QtWidgets.QFileDialog(self)
         dialog.setWindowTitle("Import Slice image")
         dialog.setNameFilter("Image files (*.asc *.ASC)")
@@ -962,12 +985,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.cwd = os.path.dirname(os.path.abspath(fname))
         else:
             return
-        self.currentMorphTreeFile = fname
+        self.prepareTree(fname)
+
+    def prepareTree(self, fname):
+        self.visulization_view.setCurrentIndex(5)
         if glob.glob(fname[:-4] + "_mod.ASC") == []:
             fname = cleanASCfile(fname)  ## to clean not-want sections
         self.updateTreeMorphView(fname)
-        if fname[-8:] == "_mod.ASC":
-            os.remove(fname)
+        # if fname[-8:] == "_mod.ASC":
+        #     os.remove(fname)
+        self.currentMorphTreeFile = fname
 
     def importSlice_clicked(self):
         self.updateSliceView()
@@ -1013,8 +1040,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveFileAction2.triggered.connect(self.saveNWB_clicked)
         self.fileMenu.addAction(self.saveFileAction2)
 
-        self.emptAction = pg.QtGui.QAction("--------")
-        self.fileMenu.addAction(self.emptAction)
+        self.fileMenu.addSeparator()
 
         self.resetAction = pg.QtGui.QAction("&Reset")
         #        self.saveFileAction.setShortcut("Ctrl+s")
@@ -1023,35 +1049,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.resetAction)
 
         self.exitAction = pg.QtGui.QAction("&Exit")
-        #        self.saveFileAction.setShortcut("Ctrl+s")
         self.exitAction.triggered.connect(self.exit_clicked)
         self.fileMenu.addAction(self.exitAction)
 
-        self.AnalysisMenu = self.mbar.addMenu("&Analysis")
-        self.AnaAction1 = pg.QtGui.QAction("&Firing pattern analysis")
-        self.AnaAction1.setStatusTip(
-            "Select a firing pattern series to extract ephy features"
-        )
-        self.AnaAction1.triggered.connect(self.extraEphyAction_clicked)
-        self.AnalysisMenu.addAction(self.AnaAction1)
+        ## TODO
+        # self.AnalysisMenu = self.mbar.addMenu("&Analysis")
+        # self.AnaAction4 = pg.QtGui.QAction("&Gap junction (Batch)")
+        # # self.AnaAction4.triggered.connect(self.checkGapJunctionActionBatch_clicked)
+        # self.AnaAction4.setStatusTip("Check gap connections in selected series")
+        # self.AnalysisMenu.addAction(self.AnaAction4)
 
-        self.AnaAction4 = pg.QtGui.QAction("&Gap junction (Batch)")
-        # self.AnaAction4.triggered.connect(self.checkGapJunctionActionBatch_clicked)
-        self.AnaAction4.setStatusTip("Check gap connections in selected series")
-        self.AnalysisMenu.addAction(self.AnaAction4)
-
-        self.AnaAction5 = pg.QtGui.QAction("&Gap junction (Current tree)")
-        self.AnaAction5.triggered.connect(self.checkGapJunctionAction_clicked)
-        self.AnaAction5.setStatusTip("Check gap connections for current series")
-        self.AnalysisMenu.addAction(self.AnaAction5)
-
-        self.AnaAction2 = pg.QtGui.QAction("&Event detection")
-        self.AnaAction2.setStatusTip("Detect spontaneous EPSPs")
-        self.AnalysisMenu.addAction(self.AnaAction2)
-        self.AnaAction2.triggered.connect(self.eventDetectionAction_clicked)
-
-        self.VisualMenu = self.mbar.addMenu("&Visulization")
-
+        self.VisualMenu = self.mbar.addMenu("&Visualization")
         self.VisualAction2 = pg.QtGui.QAction("&Show averaged traces")
         self.VisualAction2.setShortcut("Ctrl+m")
         self.VisualAction2.setStatusTip("Plot averaged stimulated response")
@@ -1073,18 +1081,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )  ## fine tune firing pattern plotting with user define parameters
         self.VisualMenu.addAction(self.VisualAction4)
 
-        self.VisualAction5 = pg.QtGui.QAction("&FP for all slice")
-        self.VisualAction5.setStatusTip(
-            "Selected traces for all cells in current slice"
-        )
-        self.VisualAction5.triggered.connect(
-            self.sliceFPView_plot
-        )  ## fine tune firing pattern plotting with user define parameters
-        self.VisualMenu.addAction(self.VisualAction5)
 
         self.OptionMenu = self.mbar.addMenu("&Option")
-
-        self.OptionAction2 = pg.QtGui.QAction("&Backgroud color")
+        self.OptionAction2 = pg.QtGui.QAction("&Switch background color")
         # OptionAction1.setShortcut("Ctrl+a")
         self.OptionAction2.triggered.connect(self.switchBackground_clicked)
         self.OptionMenu.addAction(self.OptionAction2)
@@ -1095,12 +1094,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.OptionMenu.addAction(self.OptionAction3)
         self.OptionAction3.setChecked(False)  # .isChecked()
 
-        self.OptionAction4 = pg.QtGui.QAction(
-            "&Show 3D firing pattern", self, checkable=True
-        )
-        self.OptionAction4.triggered.connect(self.FiringPattern3D_clicked)
-        self.OptionMenu.addAction(self.OptionAction4)
-        self.OptionAction4.setChecked(False)
+        # self.OptionAction4 = pg.QtGui.QAction(
+        #     "&Show 3D firing pattern", self, checkable=True
+        # )
+        # self.OptionAction4.triggered.connect(self.FiringPattern3D_clicked)
+        # self.OptionMenu.addAction(self.OptionAction4)
+        # self.OptionAction4.setChecked(False)
 
         self.OptionAction5 = pg.QtGui.QAction(
             "&Remove stimuli artifacts", self, checkable=True
@@ -1139,10 +1138,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # )  # self.dvdt2_clicked
         # self.OptionMenu.addAction(self.OptionAction8)
 
-        self.HelpMenu = self.mbar.addMenu("&Help")
-        self.HelpAction1 = pg.QtGui.QAction("&Manual")
-        # OptionAction1.setShortcut("Ctrl+a")
-        # OptionAction1.triggered.connect(OptionAction1_clicked)
+        self.HelpMenu = self.mbar.addMenu("&About")
+        self.HelpAction1 = pg.QtGui.QAction("&Documentation")
+        self.HelpAction1.triggered.connect(self.link2Doc_clicked)
         self.HelpMenu.addAction(self.HelpAction1)
 
         self.HelpAction3 = pg.QtGui.QAction("&LICENSE")
@@ -1160,8 +1158,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.bd_dialog_form.buttonBox.clicked.connect(self.buttonBoxResponse)
         self.bd_dialog.exec_()
 
-    def sliceFPView_plot(self):
-        print(self.selTreesFP)
+    # def sliceFPView_plot(self):
+    #     print(self.selTreesFP)
 
     def updateEvents(self):
         self.events.updateCurrentSweep()
@@ -2365,7 +2363,7 @@ class MainWindow(QtWidgets.QMainWindow):
             outlierCutoff_UV = pv["PSP Outliers"][1][
                 "Outlier voltage (mV) - upper bound"
             ][0]
-            outlierCutoff_rv = pv["PSP Outliers"][1]["replacemen value"][0]
+            outlierCutoff_rv = pv["PSP Outliers"][1]["replacement value"][0]
         else:
             outlierCutoff_LV = pv["PSC Outliers"][1][
                 "Outlier voltage (pA) - lower bound"
@@ -2373,7 +2371,7 @@ class MainWindow(QtWidgets.QMainWindow):
             outlierCutoff_UV = pv["PSC Outliers"][1][
                 "Outlier voltage (pA) - upper bound"
             ][0]
-            outlierCutoff_rv = pv["PSC Outliers"][1]["replacemen value"][0]
+            outlierCutoff_rv = pv["PSC Outliers"][1]["replacement value"][0]
 
         ## read data
         time, data = self.extractSingleSeries_ABF(series_index)
@@ -2533,7 +2531,7 @@ class MainWindow(QtWidgets.QMainWindow):
             outlierCutoff_UV = pv["PSP Outliers"][1][
                 "Outlier voltage (mV) - upper bound"
             ][0]
-            outlierCutoff_rv = pv["PSP Outliers"][1]["replacemen value"][0]
+            outlierCutoff_rv = pv["PSP Outliers"][1]["replacement value"][0]
         else:
             outlierCutoff_LV = pv["PSC Outliers"][1][
                 "Outlier voltage (pA) - lower bound"
@@ -2541,7 +2539,7 @@ class MainWindow(QtWidgets.QMainWindow):
             outlierCutoff_UV = pv["PSC Outliers"][1][
                 "Outlier voltage (pA) - upper bound"
             ][0]
-            outlierCutoff_rv = pv["PSC Outliers"][1]["replacemen value"][0]
+            outlierCutoff_rv = pv["PSC Outliers"][1]["replacement value"][0]
 
         if outlierCutoff_rv == "bound":
             data[data <= outlierCutoff_LV] = outlierCutoff_LV
@@ -2936,7 +2934,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         ][
                             0
                         ]  ## upper bound:data point beyond this would be replace with global mean
-                        outlierCutoff_rv = pv["PSP Outliers"][1]["replacemen value"][
+                        outlierCutoff_rv = pv["PSP Outliers"][1]["replacement value"][
                             0
                         ]  # replacement type
                     else:
@@ -2950,9 +2948,9 @@ class MainWindow(QtWidgets.QMainWindow):
                         ][
                             0
                         ]  ## upper bound:data point beyond this would be replace with global mean
-                        outlierCutoff_rv = pv["PSC Outliers"][1]["replacemen value"][
+                        outlierCutoff_rv = pv["PSC Outliers"][1]["replacement value"][
                             0
-                        ]  # replacement type
+                        ]  # replacementt type
 
                     if outlierCutoff_rv == "bound":
                         data[data <= outlierCutoff_LV] = outlierCutoff_LV
@@ -3073,7 +3071,11 @@ class MainWindow(QtWidgets.QMainWindow):
             "This program is under BSD-3 license.\nCopyright (c) 2020-2022, Ming Hu. All rights reserved.",
             BSD_3b,
         )
-
+    def link2Doc_clicked(self):
+         self.showdialog(
+            "For source code & documentation, see details below: ",
+            "Source code & issue reporting:\n https://github.com/ZeitgeberH/patchview \n\nDocumentation:\n https://patchview.readthedocs.io/en/latest/index.html",
+        )       
     def makeNWBobject(self):
         selected = self.currentPulseTree.selectedItems()
         sel = selected[0]
@@ -3157,11 +3159,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.user = "MH"
         else:
             self.user = user
+        self.useConfigDir = user_config_dir(appname)
         self.loadUserParamters(user)
 
     def loadUserParamters(self, user):
-        DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")
-        pars = loadYAML(DATA_PATH)
+        confilePath  = os.path.join(self.useConfigDir,"patchview.yaml")
+        if not os.path.exists(self.useConfigDir):
+            import shutil 
+            os.makedirs(self.useConfigDir)
+            DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")    
+            shutil.copy(DATA_PATH, confilePath)
+
+        pars = loadYAML(confilePath)
         parameters = {}
         # parameters['HF'] = pars['Filters']['High cutoff']
         parameters["filter_option"] = pars["Filters"]["Option"]
@@ -3228,8 +3237,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # print('43',self.OptionAction5.isChecked())
             return
 
-    def FiringPattern3D_clicked(self):
-        self.OptionAction4.setChecked(not self.OptionAction4.isChecked())
+    # def FiringPattern3D_clicked(self):
+    #     self.OptionAction4.setChecked(not self.OptionAction4.isChecked())
 
     def calcuatedvdt2(self, checkstatus):
         self.OptionAction6.setChecked(checkstatus)
@@ -3484,16 +3493,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def plotSpikes_clicked(self):
         if not self.EphyFeaturesObj:
-            self.getEphyFeatures()
-        self.EphyFeaturesObj.plot_alignedSpikes(mplWidget=self.spikes_view)
+            returnVal = self.getEphyFeatures()
+        else:
+            returnVal = 0
+        if returnVal:
+            self.EphyFeaturesObj.plot_alignedSpikes(mplWidget=self.spikes_view)
 
     def getDatAndePhyFeatures(self, seriesIdx0):
+        ''' Extract voltage data  and stimuli data
+        '''
         # bundle =  HEKA.Bundle(dat_file)
         bundle = self.currentPulseTree.bundle
+        ## number of sweeps for this series
         nSweep = len(
             bundle.pul[seriesIdx0[0]].children[seriesIdx0[1]].children
-        )  ## number of sweeps for this series
+        ) 
+        if nSweep  <2: ## single channel recording
+            self.showdialog("Not enough number of sweeps!")
+            return None, None, None, None
+        ## number of channels for this series
         nTraces = len(bundle.pul[seriesIdx0[0]].children[seriesIdx0[1]].children[0])
+        if nTraces  <2: ## single channel recording
+            self.showdialog("Only applicable for multichannel recordings!")
+            return None, None, None, None
         if self.parameters["Protocols"]["This serie"]["StimChanID"] != []:
             stimChanIndex = (
                 self.parameters["Protocols"]["This serie"]["StimChanID"] - 1
@@ -3505,9 +3527,6 @@ class MainWindow(QtWidgets.QMainWindow):
         seriesIdx = list(seriesIdx0.copy())  ## get series level index
         seriesIdx.append(0)  ## sweep 0
         seriesIdx.append(stimChanIndex)  ## trace 0
-        # stimInfo=[]
-        # stimTime, stimData, stimInfo0= self.currentPulseTree.bundle.stim(seriesIdx)    ## assume only 1 channel is stimulating
-        # stimInfo.append(stimInfo0)
 
         _, _, stimInfo = self.currentPulseTree.bundle.stim(
             seriesIdx
@@ -3540,12 +3559,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self, time, data, stimChanIndex, stimInfo, delay=0.001, windowLength=0.2
     ):
         """
-        check correlations
+        check correlations between cell voltage in stimulated channel and other simutaneouly recorded channel
+        delay: staring time of window relative to stimulus onset
+        windowLength: duration of window for calcuating CC
         """
         nChan = data.shape[1]
         nSweep = data.shape[2]
         stimStart = stimInfo[1]["start"] * stimInfo[1]["sampleInteval"]
-        print(f"Stimuli onset at {stimStart} second")
+        # print(f"Stimuli onset at {stimStart} second")
         t1 = stimStart + delay
         t2 = t1 + windowLength
         t0Idx = np.flatnonzero(time >= stimStart)[0]
@@ -3656,12 +3677,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.visulization_view.setCurrentIndex(1)
         if not len(selected):
             self.showdialog("Load a pulse tree first!")
-            return
+            return 0
         sel = selected[0]
 
         if len(sel.index) != 2:
             self.showdialog("To extract spike fetures, please select a series!")
-            return
+            return 0
         if self.currentPulseTree.filetype == ".dat":
             title = (
                 self.sliceName[:-4]
@@ -3742,6 +3763,7 @@ class MainWindow(QtWidgets.QMainWindow):
         sw.insert(loc=0, column="sweepCount", value=np.arange(1, len(sw) + 1))
         self.updateEphyTable(sw, self.splitViewTab_FP.tables["Sweep features"])
         self.splitViewTab_FP.bottomLeft_tabview.setCurrentIndex(1)
+        return 1
 
     @staticmethod
     def moveSweepCountFront(df, feature):
@@ -3783,11 +3805,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.getEphyFeatures()
 
     def plotAveragedTraces(self, sel):
-        # selected = self.currentPulseTree.selectedItems()
-        # sel = selected[0]
-        print("plot average", sel.index)
+        '''
+         plot sweep averaged traces
+        '''
+        selected = self.currentPulseTree.selectedItems()
+        if not len(selected):
+            self.showdialog("Load a pulse tree first!")
+            return 0
         if len(sel.index) != 2:
-            return
+            return 0
         self.checkSeriesType(sel)
         #        self.parameters['Protocols']['This serie']={'Type':'Firing pattern','StimChanID':stimChanIndex}
         if self.parameters["Protocols"]["This serie"]["Type"] in [
@@ -3800,6 +3826,7 @@ class MainWindow(QtWidgets.QMainWindow):
             #            avg = np.squeeze(np.mean(data, axis = 2))
             #            self.plotSeriesAverage(time, avg, seriesIdx)
             self.plotSeriesVariations(time, data, seriesIdx, traces)
+        return 1
 
     def VisualAction2_clicked(self):
         """plot averaged traces at series level. when the protocol is for connection pattern"""
@@ -3828,6 +3855,8 @@ class MainWindow(QtWidgets.QMainWindow):
             pdb.set_trace()
 
     def gpAna(self, option):
+        ''' Custom module for cross correlation between voltage of pair of channels in a multi-patch experiment
+        '''
         selected = self.currentSelectedIndex
         sel = selected[0]
         if len(sel.index) != 2:
@@ -3835,7 +3864,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.checkSeriesType(sel)
         if self.parameters["Protocols"]["This serie"]["Type"] in ["Firing pattern"]:
             time, data, stimInfo, stimChanIndex = self.getDatAndePhyFeatures(sel.index)
-
+            if time is None: ## single channel recording
+                return
             relativeDeflections, corrsR, corrsP = self.gapJunctionAnalysisCorrelations(
                 time, data, stimChanIndex, stimInfo, delay=0.001, windowLength=0.2
             )
@@ -4221,7 +4251,6 @@ class MainWindow(QtWidgets.QMainWindow):
             fs = bundle.getSeriesSamplingRate(sel)
             time = bundle.getSweepTimeStamps(sel)
             data = bundle.getSeriesData(sel)
-            # debugInfo('', True)
             data = filterDatSeries(data, fs, hcutFreq=1000)
             stimChanID = stimChanLabels[
                 dat_file_idx
@@ -5096,7 +5125,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         bundleClass.countSweeps([g, seriesIdx])
                         < self.parameters["CleanUp"]["minimalSweeps"]
                     ):
-                        print()
                         print(
                             f"   Series {seriesIdx:>2}: Label:",
                             seriesLabel,
@@ -6619,7 +6647,7 @@ class MainWindow(QtWidgets.QMainWindow):
             f = signal.sosfiltfilt(self.parameters["bessel_filter_sos"], f)
         else:  ## Butter
             self.butter_bandpass(highCutOff, lowCutOff, order=2)
-            print("second order Butter bandpass")
+            # print("second order Butter bandpass")
             f = signal.sosfiltfilt(self.parameters["butter_sos"], f)
 
         return f
@@ -6777,7 +6805,10 @@ class MainWindow(QtWidgets.QMainWindow):
             childName = param.name()
             if childName == "Sholl analysis":
                 self.update_sholl()
+<<<<<<< HEAD
                 self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+=======
+>>>>>>> main
             elif childName == "Update cell names":
                 self.updateInterCellDistance()
                 self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(1)

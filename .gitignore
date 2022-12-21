@@ -110,3 +110,4 @@ patchview/hooks/*
 .editorconfig
 
 .vscode
+.nwb

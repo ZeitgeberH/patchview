@@ -121,7 +121,6 @@ class HekaBundleInfo(object):
         nSweep = self.countSweeps(idx_)  ## number of sweeps for this series
         nTraces = self.countTraces(idx_)
         nSamples = self.getNumberOfSamplesPerSweep(idx_)
-        print(nSweep, nTraces)
         data = np.zeros((nSamples, nTraces, nSweep))  ## ndrarry, time X traces X sweep
         ## loops through all the sweeps
         for sweep in range(nSweep):

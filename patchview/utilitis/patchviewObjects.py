@@ -18,7 +18,7 @@ from pyqtgraph.widgets import MatplotlibWidget
 translate = QtCore.QCoreApplication.translate
 
 
-class FileModel(QtGui.QFileSystemModel):
+class FileModel(pg.QtWidgets.QFileSystemModel):
     """
     Class for file system model
     """
@@ -32,14 +32,14 @@ class FileModel(QtGui.QFileSystemModel):
         )
 
         # filter out non dats and disable showing
-        self.setNameFilters(["*.dat", "*.abf"])
+        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC"])
         self.setNameFilterDisables(False)
 
         # set root
         self.setRootPath(root_path)
 
 
-class sliceSelectionDialog(QtGui.QWidget):
+class sliceSelectionDialog(pg.QtWidgets.QWidget):
     def __init__(self, parent=None, items=None):
         super(sliceSelectionDialog, self).__init__(parent)
         self.items = items
@@ -72,7 +72,7 @@ class sliceSelectionDialog(QtGui.QWidget):
             self.sliceName.setText(str(text))
 
 
-class FileView(QtGui.QTreeView):
+class FileView(pg.QtWidgets.QTreeView):
     """
     Class for view of file system model
     """
@@ -205,7 +205,7 @@ class FileView(QtGui.QTreeView):
         # check extension
         _, ext = os.path.splitext(file_path)
         if ext == "":
-            print("this is a folder")
+            # print("this is a folder")
             self.currentPath = file_path
         elif ext == ".dat":
             self.currentFile = file_path
@@ -228,11 +228,14 @@ class FileView(QtGui.QTreeView):
         #        os.chdir(self.frame.root)
         # check extension
         _, ext = os.path.splitext(file_path)
-        self.frame.clearAllTrees()
-        self.frame.update_pul(file_path, dat_index=None, ext=ext)
+        if ext in ['.asc','.ASC']:
+            self.frame.prepareTree(file_path)
+        else:
+            self.frame.clearAllTrees()
+            self.frame.update_pul(file_path, dat_index=None, ext=ext)
 
 
-class SelectionView(pg.QtGui.QTreeWidget):
+class SelectionView(pg.QtWidgets.QTreeWidget):
     """Class for viewing selected .dat series"""
 
     def __init__(self, parent):
@@ -500,7 +503,7 @@ class cellROI(pg.EllipseROI):
         self.mainWindow.updateROI_table()
 
 
-class PulView(pg.QtGui.QTreeWidget):
+class PulView(pg.QtWidgets.QTreeWidget):
     """
     Class for viewing tree of pul file
     """
@@ -737,7 +740,7 @@ class PulView(pg.QtGui.QTreeWidget):
         self.frame.update_trace_plot()
 
 
-class OptionsView(QtGui.QWidget):
+class OptionsView(pg.QtWidgets.QWidget):
     """
     Class for view containing plotting options.
     """
@@ -909,7 +912,7 @@ class TableView(pg.TableWidget):
             super(TableView, self).keyPressEvent(event)
 
 
-class TabView(QtGui.QTabWidget):
+class TabView(pg.QtWidgets.QTabWidget):
     """
     Class for tab view.
     """
@@ -1031,7 +1034,7 @@ class ParameterView:
         self, parent, name="params", type="group", children=None, readonly=False
     ):
         self.parent = parent
-        self.params = children  ## actual paratmers
+        self.params = children  ## actual parameters
         self.state = []  ## save and restore
         self.p = Parameter.create(
             name=name, type=type, children=children, readonly=readonly
@@ -1176,7 +1179,7 @@ class miniEvent:
         self.init()
 
 
-class SplitView(QtGui.QSplitter):
+class SplitView(pg.QtWidgets.QSplitter):
     """A boiler plate for constructing multipanel tab.
     Top row may contain multiple figures with matplotlib backend
     Bottom row split horinzontally into two.
@@ -1258,7 +1261,7 @@ class SplitView(QtGui.QSplitter):
             self.tables.update({tableNames: table})
             self.bottomRight_tabview.addTab(table, tableNames)
 
-    def addParameterToLeftTab(self, title, pars, func=None):
+    def addParameterToLeftTab(self, title, pars, func=None, tooltips=None):
         """use this to add a parameter tree.
         title: tab name for this table
         pars: parameters to be loaded into this tree widget
@@ -1271,10 +1274,18 @@ class SplitView(QtGui.QSplitter):
         # self.fpParTree_data_view.p.sigTreeStateChanged.connect(self.fpParTree_stateChange)
         # self.thresholdPar.sigValueChanged.connect(self.thresholdParChange)
         parsTree.setParameters(parsTree_view.p, showTop=False)
+        if tooltips is not None:
+            parsTree = self.addTooltips(parsTree, tooltips)
         self.bottomLeft_tabview.addTab(parsTree, title)  ##
         self.parTreeViews[title] = parsTree_view
         self.parsTree_values_init[title] = False
-
+    
+    def addTooltips(self, parTree, tooltips):
+        ''' Add tooltips for parameter tree'''
+        for idx, tt in enumerate(tooltips):
+            parTree.children()[0].children()[idx].setToolTip(tt['value'])
+        return parTree
+    
     def setParTreePars(self, pars, index=0, title="Data selection", func=None):
         self.bottomLeft_tabview.setCurrentIndex(index)
         parsTree = ParameterTree()

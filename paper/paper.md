@@ -51,11 +51,11 @@ Please refer to the [full documentation](https://patchview-doc.readthedocs.io/en
 
 **Compares to other commonly-used packages** 
 
-Commercial softwares such as [Patchmaster](https://www.heka.com/downloads/downloads_main.html#down_patchmaster_next), [Clampfit](https://www.moleculardevices.com/products/axon-patch-clamp-system/acquisition-and-analysis-software/pclamp-software-suite#Overview) provide rich functions for handling this type of data. However, the former only supports Heka data, while the latter only support Axon Instruments data. PatchView supports both .dat (from Heka) and .abf format (from Axon Instruments). To facilitate data sharing, PatchView could export imported data as NWB file. 
+Commercial software such as [Patchmaster](https://www.heka.com/downloads/downloads_main.html#down_patchmaster_next), [Clampfit](https://www.moleculardevices.com/products/axon-patch-clamp-system/acquisition-and-analysis-software/pclamp-software-suite#Overview) provide rich functions for handling this type of data. However, the former only supports Heka data, while the latter only support Axon Instruments data. PatchView supports both .dat (from Heka) and .abf format (from Axon Instruments). To facilitate data sharing, PatchView could export imported data as NWB file. 
 
 ``Stimfit``[@Guzman:2014] is a well-known python package for dealing with pre/post synaptic events in single channel. Compared to ``Stimfit``, ``PatchView`` also provides more intuitive user interface (\autoref{fig:miniEvent-gui}) and more native support for Heka ``dat`` file. For instance, most of the time, a Heka ``dat`` file may host data recorded in multiple experiments from a single cell. These experiments may need to be analyzed with different pipelines. ``PatchView`` leverages the labels (those are usually predefined by experimenters for each protocols) associated with each experiment to automatically sort data into its corresponding category. Sorted data can be directly submitted to downstream pipeline, such as mini-event analysis. 
 
-In addition to that, other softwares mentioned above do not support analysis for data recorded from multi channels simultaneously. PatchView supports multi-channel analysis, such as synaptic connection analysis (\autoref{fig:connection}). 
+In addition to that, other software mentioned above does not support analysis for data recorded from multiple channels simultaneously. PatchView supports multi-channel analysis, such as synaptic connection analysis (\autoref{fig:connection}). 
 
 # Figures
 
@@ -71,6 +71,8 @@ Right: multiple plots during a typical analysis). The toolbar is seen on the far
 
 # Acknowledgements
 
-We acknowledge open-source packages (please see the [documentation]((https://patchview-doc.readthedocs.io/en/latest/)) for the detailed list) that are used in PatchView. We would like to thank lab members in Dr. Xiaolong Jiang's lab for their feedbacks in using PatchView for their data analysis. The work is supported by the grants R01 MH122169 and R01 MH120404 (to XJ) from the National Institutes of Health.
+We acknowledge open-source packages (please see the [documentation]((https://patchview-doc.readthedocs.io/en/latest/)) for the detailed list) that are used in PatchView. We would like to thank lab members in Dr. Xiaolong Jiang's lab for their feedback in using PatchView for their data analysis. The work is supported by the grants R01 MH122169 and R01 MH120404 (to XJ) from the National Institutes of Health.
+
+We thank JOSS editor and reviewers for their very useful comments and suggestions during the JOSS review process. 
 
 # References

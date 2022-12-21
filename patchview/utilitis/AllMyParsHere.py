@@ -425,7 +425,7 @@ event_detection_preprocessing = [
                 "suffix": "V",
             },
             {
-                "name": "replacemen value",
+                "name": "replacement value",
                 "type": "list",
                 "values": ["bound", "mean", "median", -0.065],
                 "value": "bound",
@@ -457,7 +457,7 @@ event_detection_preprocessing = [
                 "suffix": "A",
             },
             {
-                "name": "replacemen value",
+                "name": "replacement value",
                 "type": "list",
                 "values": ["bound", "mean", "median", 0],
                 "value": "bound",

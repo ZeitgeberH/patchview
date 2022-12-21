@@ -9,7 +9,7 @@ Development Lead
 
 Contributors
 ----------------
-None yet. Why not be the first?
+We thank JOSS editor (@jmschrei) and reviewers (@janfreyberg & @mstimberg) for their very useful comments and suggestions during the JOSS review process.
 
 
 Open source package used in PatchView
