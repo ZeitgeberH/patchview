@@ -44,7 +44,6 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.10',
         "Operating System :: OS Independent",
     ],
     description="Patchview perform data analysis and visualization on whole-cell recording data, including firing pattern analysis, event analysis, synatpic connection detection, morphorlocial analysis and more.",
@@ -61,7 +60,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/zeitgeberH/patchview',
-    version = "0.2.6",
+    version = "0.2.9",
     zip_safe=False,
     entry_points={
         'gui_scripts': [
