@@ -36,11 +36,6 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
 )
 from patchview.utilitis import fitFuncs
-<<<<<<< HEAD
-=======
-from patchview.utilitis.morphorFeatureExtrator import (
-    getSomaStats, extractMorhporFeatures, sholl_analysis)
->>>>>>> main
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
@@ -48,7 +43,7 @@ import networkx as nx
 from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
-from neurom.io.multiSomas import MultiSoma
+# from neurom.io.multiSomas import MultiSoma
 from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
 from neurom.core.morphology import Morphology
 import neo
@@ -74,12 +69,9 @@ from hdmf.build import BuildManager, TypeMap
 warnings.filterwarnings("ignore")
 from appdirs import *
 patchview_dir, this_filename = os.path.split(__file__)
-<<<<<<< HEAD
-=======
 appname = "Patchview"
-__version__ = "0.2.6.0"
+__version__ = "0.2.9"
 
->>>>>>> main
 class MainWindow(QtWidgets.QMainWindow):
     """
     Main frame.
@@ -431,17 +423,10 @@ class MainWindow(QtWidgets.QMainWindow):
             editable=True,
             sortable=False,
         )
-<<<<<<< HEAD
-        self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
-        splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
-
-        
-=======
 
         self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
         splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
 
->>>>>>> main
         splitViewTab_morph.addParameterToLeftTab(
             "Analysis", AllMyPars.Morphor_analysis, self.morph_analysis_event
         )
@@ -677,12 +662,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph.matplotViews["2D"].getFigure().set_size_inches(
             5, 5, forward=False
         )
-<<<<<<< HEAD
-        neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
-=======
         neurons, custom_data = morphor_nm.load_neuron(fname)
         self.pia = None
->>>>>>> main
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.clf()
         ax2D = fig2D.add_subplot(111)
@@ -724,14 +705,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.matplotViews["2D"].draw()
             xlim1 = ax2D.xaxis.get_data_interval().copy()
             ylim1 = ax2D.yaxis.get_data_interval().copy()
-<<<<<<< HEAD
-
-            if len(neurons.custom_data) > 0:
-                for datablock in neurons.custom_data:
-=======
             if len(custom_data) > 0:
                 for datablock in custom_data:
->>>>>>> main
                     d = datablock.data_block
                     if d[0][4] == 8:  ## PIA, just draw lines
                         ax2D.plot(d[:, 0], d[:, 1], "k", label="Pia")
@@ -6805,10 +6780,6 @@ class MainWindow(QtWidgets.QMainWindow):
             childName = param.name()
             if childName == "Sholl analysis":
                 self.update_sholl()
-<<<<<<< HEAD
-                self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
-=======
->>>>>>> main
             elif childName == "Update cell names":
                 self.updateInterCellDistance()
                 self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(1)

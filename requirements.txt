@@ -24,5 +24,8 @@ scipy
 pandas
 matplotlib
 scikit-image
+neurom
+morphio
+scikit-learn
 sklearn
 numpy>=1.22,<1.24
