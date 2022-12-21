@@ -14,7 +14,7 @@ import os, glob
 import numpy as np
 import pandas as pd
 from pyqtgraph.widgets import MatplotlibWidget
-
+import pdb
 translate = QtCore.QCoreApplication.translate
 
 
@@ -134,7 +134,7 @@ class FileView(pg.QtWidgets.QTreeView):
             shortestName = datFiles[shortestName]
             fileNamePrefix = []  ## prefix for slice name
             for idx, c in enumerate(longestName):  ## common characters between files
-                if c == shortestName[idx]:
+                if idx < len(shortestName) and c == shortestName[idx]:
                     fileNamePrefix.append(c)
                 else:
                     break

@@ -236,3 +236,53 @@ def cleanASCfile(filename):
     f_1.close()
     f_2.close()
     return tempName
+
+def padding_(ndiff,   bin_array, padVal=0):
+    ''' ndiff: total number to pad
+        bin_array: original array
+        padVal: padded value
+    '''
+    leftPadd = ndiff//2
+    rightPadd = ndiff -leftPadd
+    step = np.diff(bin_array)[0]
+    if padVal!=0:
+        leftArray = np.linspace(bin_array[0]- leftPadd*step, bin_array[0], leftPadd, endpoint=False)
+        rightArray = np.linspace(bin_array[-1]+step, bin_array[-1]+step+ rightPadd*step, rightPadd, endpoint=False)
+        pad_array = np.concatenate([leftArray,bin_array, rightArray ])
+    else:
+        pad_array = np.pad(bin_array, (leftPadd, rightPadd),'constant', constant_values=(padVal, padVal))
+    return pad_array
+    
+def smooth(x,window_len=10,window='hanning'):
+    """smooth the data using a window with requested size.
+    
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal 
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
+    
+    input:
+        x: the input signal 
+        window_len: the dimension of the smoothing window; should be an odd integer
+        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+            flat window will produce a moving average smoothing.
+
+    output:
+        the smoothed signal
+    """
+    if len(x) < window_len:
+        window_len = len(x)//2
+    s=np.r_[x[window_len-1:0:-1],x,x[-2:-window_len-1:-1]] ## padded
+    #print(len(s))
+    if window == 'flat': #moving average
+        w=np.ones(window_len,'d')
+    else:
+        w=eval('np.'+window+'(window_len)')
+    y=np.convolve(w/w.sum(),s,mode='valid')
+    pn = window_len//2
+    return y[(pn-1):-pn]
+
+if __name__ == "__main__":
+    n = 4
+    x = np.array([1,5,9])
+    print(padding_(n, x, padVal=0))
