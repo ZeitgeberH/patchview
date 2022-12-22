@@ -2,8 +2,13 @@ import numpy as np
 from scipy import stats
 import pandas as pd
 import neurom as morphor_nm
-from neurom.core.types import NeuriteType
+from neurom import morphmath as mm
+from neurom.core.types import (tree_type_checker, NeuriteType)
 from neurom import features
+from scipy.spatial import ConvexHull, Delaunay
+from scipy.spatial.distance import cdist
+from neurom.core.morphology import Section
+
 def getSomaStats(n):
     ''' Basic statistics for soma
     '''
@@ -30,7 +35,7 @@ def minmaxDist(ps):
                 maxDia = diameter
     return maxDia
 
-def extractMorhporFeatures(n, df_summary=None):
+def extractMorhporFeatures_simple(n, df_summary=None):
     ''' return a dataframe (formated as record) contains useful features
     '''
     number_of_neurites = morphor_nm.get("number_of_neurites", n)
@@ -54,8 +59,8 @@ def extractMorhporFeatures(n, df_summary=None):
     df_summary["maximal radius"] = [np.max(soma_radius)]
     df_summary["minimal radius"] = [np.min(soma_radius)]
     df_summary["maximal diameter"] = [maxDia]
-    df_summary["Number of neurite"] = [number_of_neurites[0]]
-    df_summary["Number of sections"] = [number_of_sections[0]]
+    df_summary["Number of neurite"] = [number_of_neurites]
+    df_summary["Number of sections"] = [number_of_sections]
     for i, neurite in enumerate(n.neurites):
         df_summary[str(neurite.type)] = [number_of_sections_per_neurite[i]]
     # df = pd.DataFrame(df_summary)
@@ -160,32 +165,159 @@ def sholl_polar(n,  step_size=1, pho_step=5, angle_step=np.pi/16,  neurite_type=
     A, R = np.meshgrid(abins, rbins)
     return hist, A, R
 
+def getPerimeter_Area(ps):
+    ps2  = ps.copy()
+    ps2 = ps2[:,:2] ## make sure we get 2D array
+    try:
+        c_hull = ConvexHull(ps2)
+        area, perimeter =  c_hull.volume,c_hull.area
+    except:
+        print('Hull alg. failed! return None for area and perimeter for the soma')
+        area, perimeter =  np.nan, np.nan
+    return area, perimeter
 
-def sholl_2D_density_(n, step_size=2, neurite_type=NeuriteType.all, bins=None, maxNorm=False):
-    ''' density in x-y plane.
-        Return density (um per length step). distance is center at soma center.
-        TODO: USE scipy.stats.binned_statistic_2d to get density
+def getSomaCircularityIndex(area, perimeter):
+    ''' Calculate roundness of a soma contour 
+    return a float value between (0,1.0). 1 being a perfect circle
     '''
-    horiz, bin_h, centerH, segH = sholl_single_axis(n, step_size=step_size, axis='x', neurite_type=neurite_type)
-    vert, bin_v, centerV, segV = sholl_single_axis(n, step_size=step_size, axis='y', neurite_type=neurite_type)
-    # ndiff =  bin_h.shape[0] - bin_v.shape[0]
-    # if ndiff>0:
-    #     bin_v = padding_(ndiff, bin_v, padVal=None)
-    #     vert = padding_(ndiff, vert, padVal=0)
-    # else:
-    #     bin_h = padding_(-ndiff, bin_h, padVal=None)
-    #     horiz = padding_(-ndiff, horiz, padVal=0)
-    if bins is None:
-        bins = [bin_h, bin_v]
+    if area is not np.nan and perimeter is not np.nan:
+        return  np.round((4 * np.pi * area) / (perimeter * perimeter), 2)
     else:
-        bins = [bins, bins]
-    if maxNorm:
-        d2d, h_edges, v_edges = np.histogram2d(segH, segV, bins=bins, density=False)
-        d2d = d2d/np.max(d2d)
-    else:
-        d2d, h_edges, v_edges = np.histogram2d(segH, segV, bins=bins, density=True)
+        return np.nan
 
-    return d2d, h_edges, v_edges, centerH, centerV
+def getShapeFactors(ps_):
+    ''' 
+    Giving soma points,return a bunch of shape factors in one go
+    circularity, max_diameter, shape_factor as defined in neurom.morphmath
+    '''
+    ps = ps_[:,:2].copy()
+    try:
+        hull = ConvexHull(ps)
+        cirIndex = 4.0 * np.pi * hull.volume / hull.area**2 #circularity
+        hull_points = ps[hull.vertices]
+        max_pairwise_distance = np.max(cdist(hull_points, hull_points))
+        shapefactor= hull.volume / max_pairwise_distance**2
+    except:
+        cirIndex, max_pairwise_distance, shapefactor  = np.nan, np.nan, np.nan
+    try:
+        aspRatio = mm.aspect_ratio(ps)
+    except:
+        aspRatio = np.nan
+    return cirIndex, max_pairwise_distance, shapefactor,aspRatio
+
+def sec_len(n,sec):
+    """Return the length of a section."""
+    return mm.section_length(sec.points)
+
+def total_neurite_length(n):
+    '''Total neurite length (sections)'''
+    return sum(sec_len(n, s) for s in morphor_nm.iter_sections(n))
+
+def total_neurite_volume(n):
+    '''Total neurite volume'''
+    return sum(mm.segment_volume(s) for s in morphor_nm.iter_segments(n))
+
+def total_neurite_area(n):
+    '''Total neurite area'''
+    return sum(mm.segment_area(s) for s in morphor_nm.iter_segments(n))
+
+def total_bifurcation_points(n):
+    '''Number of bifurcation points'''
+    return sum(1 for _ in morphor_nm.iter_sections(n,
+                                          iterator_type=Section.ibifurcation_point))
+def max_branch_order(n):
+    '''Maximum branch order'''
+    return  max(features.section.branch_order(s) for s in morphor_nm.iter_sections(n))
+
+def min_max_trunk_angle(n, neurteType = NeuriteType.basal_dendrite):
+    angles = morphor_nm.features.morphology.trunk_angles(n, neurite_type=neurteType, consecutive_only=False)
+    if len(angles)>1:
+        # print(n.name, angles)
+        nmax = []
+        nmin = []
+        for x in angles:
+            if 0 in x:
+                x.remove(0)
+            nmax.append(max(x))
+            nmin.append(min(x))
+        try:
+            ad_min = min(nmin)
+            ad_max = max(nmax)
+        except:
+            ad_min = np.nan
+            ad_max = np.nan    
+    else:
+        ad_min = np.nan
+        ad_max = np.nan    
+    return ad_min, ad_max, angles
+
+def dendrites_dispersion_index(ad_min, ad_max, angles):
+    '''dendrites_dispersion_index'''
+    ## calculate dendrite directions dispersion
+    ## ad_max: maximum angle between any two dendrites, in (0, pi)
+    ## ad_min: minimum angle between any two dendrites, in (0, pi)
+    ## dispersion index: (ad_max-ad_min) / (ad_max+ad_min) (0, 1). 0 being total overlap.
+    if ad_max!=np.nan and ad_min!=np.nan:
+        if ad_max==ad_min:
+            ad_max = np.pi ## two dendrites only
+            return 1-(ad_max-ad_min) / (ad_max+ad_min)
+    else:
+        return np.nan
+
+def extractMorphFeatures(n, df_summary=None):
+    ''' return a dictionary contains useful morphor features
+    n: NeuroM Neuron object
+    '''
+    if df_summary is None:
+        df_summary = {}
+    maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
+    df_summary["Neuron id"] = n.name
+    df_summary["center X"] = soma_center[0]
+    df_summary["center Y"] = soma_center[1]
+    df_summary["center Z"] = soma_center[2]
+    cellArea, cellPerimeter = getPerimeter_Area(n.soma.points)
+    cirIndex, max_pairwise_distance, shapefactor, asratio = getShapeFactors(n.soma.points)
+    df_summary["soma average radius"] = soma_avgRadius
+    df_summary["soma maximal radius"] = np.max(soma_radius)
+    df_summary["soma minimal radius"] = np.min(soma_radius)
+    df_summary['soma max_pairwise_dist'] = max_pairwise_distance
+    df_summary["soma perimeter"] = cellPerimeter
+    df_summary["soma area"] = cellArea
+    df_summary['soma circularity index'] = cirIndex
+    df_summary['soma shape factor'] = shapefactor
+    df_summary['soma aspect_ratio'] = asratio
+    df_summary['cell max_radial_dist'] = features.morphology.max_radial_distance(n)
+    df_summary['total number of neurites'] = len(n.neurites)
+    if len(n.neurites) > 0:
+        for neurite in n.neurites:
+            nsections = features.morphology.number_of_sections_per_neurite(n, neurite.type)
+            neuriteTrunkLength = morphor_nm.features.morphology.trunk_section_lengths(n, neurite_type=neurite.type)
+            neutriteName = str(neurite.type).split('.')[-1]
+            df_summary[neutriteName+ ' Nseg'] = len(nsections)
+            tortuositys = [morphor_nm.features.section.section_tortuosity(s) for s in morphor_nm.iter_sections(n, 
+            neurite_filter=tree_type_checker(neurite.type))]
+            df_summary[neutriteName+ '_avg_tortuosity'] = np.mean(tortuositys)
+            df_summary[neutriteName+ '_max_tortuosity'] = np.max(tortuositys)
+            if len(nsections) > 1 :
+                for i in range(len(nsections)):
+                    df_summary[neutriteName+ ' seg'+str(i+1)+' Nsec'] = nsections[i]
+                    df_summary[neutriteName+ ' seg'+str(i+1)+' trunkLen'] = neuriteTrunkLength[i] # stem length
+                
+            else:
+                df_summary[neutriteName+' Nsec'] = nsections[0]
+                df_summary[neutriteName+' trunkLen'] = neuriteTrunkLength[0] # stem length
+        # neurite features
+        neurite_funcs = [total_neurite_length,total_neurite_volume,total_neurite_area,\
+            total_neurite_area,total_bifurcation_points,
+            max_branch_order]
+        for f in neurite_funcs:
+            df_summary[f.__doc__] = f(n)
+
+    admin, admax, angles = min_max_trunk_angle(n)
+    df_summary['trunk angle min'] = admin
+    df_summary['trunk angle max'] = admax
+    df_summary['trunk angle dispersion index'] = dendrites_dispersion_index(admin, admax, angles)
+    return df_summary
 
 if __name__ == "__main__":
     pass

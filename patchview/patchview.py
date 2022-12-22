@@ -38,7 +38,8 @@ from patchview.utilitis.AnalysisMethods import (
 from neurom.geom.transform import (translate, rotate)
 from patchview.utilitis import fitFuncs
 from patchview.utilitis.morphorFeatureExtrator import (
-    getSomaStats, extractMorhporFeatures, sholl_analysis, sholl_single_axis,sholl_2D_density, sholl_polar)
+    getSomaStats, extractMorphFeatures, sholl_analysis,
+     sholl_single_axis,sholl_2D_density, sholl_polar)
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
@@ -47,7 +48,7 @@ from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
 from neurom.io.multiSomas import MultiSoma
-from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
+# from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
 from neurom.core.morphology import Morphology
 from neurom.core.types import NeuriteType
 import neo
@@ -75,7 +76,9 @@ from appdirs import *
 patchview_dir, this_filename = os.path.split(__file__)
 appname = "Patchview"
 __version__ = "0.2.6.0"
-
+NeutriteColors = {NeuriteType.apical_dendrite:'m',
+NeuriteType.basal_dendrite: 'b',
+NeuriteType.axon:'r'}
 class MainWindow(QtWidgets.QMainWindow):
     """
     Main frame.
@@ -116,6 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainFrame.setLayout(self.MainLayout)
         self.setCentralWidget(self.mainFrame)
         self.plotItemList = []  ## collect all plot handles
+        self.currentAnMorphView= []
 
     def add_selectedDatFile(self, filePath):
         """adding file to the file list if not exist already"""
@@ -756,7 +760,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.neuronMorph = neurons
             morphor_viewer.draw(
                 neurons, mode="2d", realistic_diameters=realDia, fig=fig2D, ax=ax2D,
-                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,rotationContour=rotateAngle
             )
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
@@ -766,7 +770,7 @@ class MainWindow(QtWidgets.QMainWindow):
             print("Neuron morphology loaded!")
             df_summary = {}
             df_summary["ASC file"] = [fname]
-            df_summary = extractMorhporFeatures(neurons, df_summary)
+            df_summary = extractMorphFeatures(neurons, df_summary)
             df_summary = {k:[df_summary[k]] for k in df_summary} ## weird requr. of pandas
             df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
             df_summary  = np.array(
@@ -901,15 +905,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 ax.cla()
             else:
                 fig = ''
-            colors = {NeuriteType.apical_dendrite:'m',
-            NeuriteType.basal_dendrite: 'b',
-            NeuriteType.axon:'r'}
+
             if neurite_type == NeuriteType.all:
                 neurite_type  = [NeuriteType.apical_dendrite, NeuriteType.basal_dendrite, NeuriteType.axon]
             else:
                 neurite_type  = [neurite_type]
             for neurite_type in neurite_type :
-                c = colors[neurite_type]
+                c = NeutriteColors[neurite_type]
                 density, bin_edges, centerVal, _ = sholl_single_axis(self.neuronMorph, step_size=step_size, axis=axis,
                  neurite_type=neurite_type)
                 if density==[]:
@@ -942,16 +944,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
 
-    def update_sholl(self):
-        if self.neuronMorph is not None:
-            sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph)
-            
+    def update_sholl(self, step_size=1, smoothBins=11,smoothStandardDeviation=2):
+        if self.neuronMorph is not None:        
             fig = self.morphAnaFigs_matplotView.getFigure()
             fig.clf()
             ax = fig.add_subplot(111)
             ax.cla()
             sns.set_style("whitegrid")
-            ax = sns.lineplot(x=sholl_bins, y=sholl_dist, ax=ax)
+            for neurite in self.neuronMorph.neurites:
+                sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph, step_size=step_size, neurite_type=neurite.type)
+                c = NeutriteColors[neurite.type]
+                sholl_bins = smooth(sholl_bins, window_len=smoothBins, std=smoothStandardDeviation,
+                window='gaussian')
+                ndiff = len(sholl_bins) - len(sholl_dist)
+                if ndiff > 0:
+                    sholl_bins = sholl_bins[ndiff:]
+                else:
+                    sholl_dist = sholl_dist[-ndiff:]
+                ax = sns.lineplot(x=sholl_bins, y=sholl_dist, ax=ax, color=c)
             ax.set(xlabel='Distance from soma (um)', ylabel="Num. points",\
             title="Sholl frequency")
             ax.spines["right"].set_visible(False)
@@ -2077,7 +2087,6 @@ class MainWindow(QtWidgets.QMainWindow):
         tracePlot = self.events.decovPlot
         pos = evt.scenePos()  ## this is for MouseClicked event
         mousePoint = tracePlot.vb.mapSceneToView(pos)
-        print(pos, mousePoint)
         # button = evt.button()
         # pdb.set_trace()
         if tracePlot.sceneBoundingRect().contains(pos):
@@ -2086,7 +2095,6 @@ class MainWindow(QtWidgets.QMainWindow):
             t = mousePoint.y()
             m, std0 = self.events.m, self.events.std
             nSTD = (t - m) / std0
-            print(f"#std: {nSTD}")
             # self.eventParTree_data_view.blockTreeChangeEmit = 1
             # self.eventParTree_data_view.p.blockTreeChangeEmit = 1
             self.events.threholdPar.setValue(nSTD)
@@ -2636,7 +2644,6 @@ class MainWindow(QtWidgets.QMainWindow):
         seriesIdx = list(series_index.copy())  ## get series level index
         seriesIdx.append(0)  ## sweep 0
         seriesIdx.append(currentTrace)
-        print(seriesIdx)
         ## loops through all the sweeps
         SweepIdx = range(nSweep)
         self.events.isConcat = True
@@ -7008,7 +7015,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 if self.currentAnMorphView!="":
                     childName = self.currentAnMorphView
             if childName == "Sholl analysis":
-                self.update_sholl()
+                self.update_sholl(step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
                 self.currentAnMorphView = childName
             if childName in ["X axis density"]:
                 self.update_density('x',step_size=step_size,smoothBins=smoothBins,
