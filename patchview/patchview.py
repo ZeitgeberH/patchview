@@ -22,7 +22,6 @@ from patchview.ephys import ephys_features as ephys_ft
 from patchview.ephys import ephys_extractor as efex
 from patchview.ephys import extraEhpys_PV
 from patchview.ephys.extraEhpys_PV import extract_sweep_feature
-
 from scipy.stats import pearsonr
 import itertools
 import time as sysTime
@@ -34,7 +33,7 @@ from patchview.utilitis.AnalysisMethods import (
     filterDatSeries,
     calculateConnectionTraces,
     cleanASCfile,
-    smooth, padding_
+    smooth, smooth2D, padding_
 )
 from neurom.geom.transform import (translate, rotate)
 from patchview.utilitis import fitFuncs
@@ -44,8 +43,12 @@ from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
 ## reading neuroluscida file
+from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
+from neurom.io.multiSomas import MultiSoma
+from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
+from neurom.core.morphology import Morphology
 from neurom.core.types import NeuriteType
 import neo
 from neo.io import AxonIO
@@ -128,6 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spikeTable_view = TableView(self)  # a talbe of detected spikes
         # self.sliceView.tables['ROI list'] = TableView(self)  # a talbe of detected spikes
         self.roidata = []  ## roi coordinates
+        self.neuronMorph =  None 
         # list .dat files
         self.files_view = TabView(self)
         self.files_view.addTab(self.file_view, "Dat file")
@@ -651,17 +655,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateTreeMorphView(self, fname):
         # try:
-        self.splitViewTab_morph.matplotViews["2D"].getFigure().set_size_inches(
-            5, 5, forward=False
-        )
-        neurons, custom_data = morphor_nm.load_neuron(fname)
-        self.pia = None
-        if hasattr(neurons, "neurons"):
+        pv = self.splitViewTab_morph.getParTreePars("Analysis")
+        if pv["Options"][1]["Draw contour"][0]:
+            drawContour = True
+        else:
+            drawContour = False
+        if pv["Options"][1]["Ignore diameters"][0]:
+            realDia = True
+        else:
+            realDia= False
+        self.neuronMorph =  None 
+        neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
+        fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
+        fig2D.set_size_inches(
+            5, 5, forward=False)
+        fig2D.clf()
+        ax2D = fig2D.add_subplot(111)
+        ax2D.cla()
+        if isinstance(neurons, MultiSoma):
+            print('Multi soma detected!')
             ## population of neurons with soma only
-            fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
-            fig2D.clf()
-            ax2D = fig2D.add_subplot(111)
-            ax2D.cla()
             centers = {
                 "Name": [],
                 "X": [],
@@ -675,10 +688,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "intercell distance": [],
             }
 
-            for idx, n in enumerate(neurons):
-                fig2D, ax2D = morphor_viewer.draw(
-                    n, mode="2d", fig=fig2D, ax=ax2D, label=str(idx + 1)
-                )
+            for idx, n in enumerate(neurons.pop_neurons):
                 maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
                 centers["X"].append(soma_center[0])
                 centers["Y"].append(soma_center[1])
@@ -688,27 +698,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 centers["minimal radius"].append(np.min(soma_radius))
                 centers["min_max_ratio"].append(np.min(soma_radius) / np.max(soma_radius))
                 centers["maximal diameter"].append(maxDia)
-                distanceList_ = []
-                if len(centers["X"]) > 1:## calculte distance between cells 
-                    x0, y0, z0 = centers["X"][-1], centers["Y"][-1], centers["Z"][-1]
-                    for kkk, _ in enumerate(centers["X"][:-1]):
-                        d = np.round(
-                            np.sqrt(
-                                (centers["X"][kkk] - x0) ** 2
-                                + (centers["Y"][kkk] - y0) ** 2
-                                + (centers["Z"][kkk] - z0) ** 2
-                            ),
-                            1,
-                        )
-                        distanceList_.append(d)
-                centers["intercell distance"].append(distanceList_)
+                centers["intercell distance"].append(neurons.getDistMatrix(centers))
                 centers["Name"].append(str(idx + 1))
 
+            morphor_viewer.draw(
+                neurons, mode="2d", fig=fig2D, ax=ax2D,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
+                 labels=None
+            )
             self.splitViewTab_morph.matplotViews["2D"].draw()
             xlim1 = ax2D.xaxis.get_data_interval().copy()
             ylim1 = ax2D.yaxis.get_data_interval().copy()
-            if len(custom_data) > 0:
-                for datablock in custom_data:
+
+            if len(neurons.custom_data) > 0:
+                for datablock in neurons.custom_data:
                     d = datablock.data_block
                     if d[0][4] == 8:  ## PIA, just draw lines
                         ax2D.plot(d[:, 0], d[:, 1], "k", label="Pia")
@@ -732,13 +735,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].clear()
             self.splitViewTab_morph.tables["Summary"].appendData(df)
             self.splitViewTab_morph.tables["Summary"].show()
+    
             self.updateInterCellDistance()
             self.neuronMorph =  None ## no dendrites for further analysis
         else:  ## single neuron with dendtrite and/or axons
-            import matplotlib
             fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
             fig2D.clf()
-            # fig2D.set_layout_engine(matplotlib.layout_engine.ConstrainedLayoutEngine)
             widths = [3,1]
             # heights = [5,1]
             gs0 = fig2D.add_gridspec(1, 2, width_ratios = widths)
@@ -746,66 +748,53 @@ class MainWindow(QtWidgets.QMainWindow):
             ax2D.cla()
             pv = self.splitViewTab_morph.getParTreePars("Analysis")
             rotateAngle = pv["Options"][1]["Rotate tree (degree)"][0]
+            step_size=pv['Options'][1]['Bin size (um)'][0]
+            smoothBins=pv['Options'][1]['Gaussian window size (num. bins)'][0]
+            smoothStandardDeviation=pv['Options'][1]['Std of Gaussian kernel (num. bins)'][0]
             if rotateAngle!=0:
                 neurons = rotate(neurons, [0,0,1], rotateAngle*np.pi/180)
+            self.neuronMorph = neurons
             morphor_viewer.draw(
-                neurons, mode="2d", realistic_diameters=True, fig=fig2D, ax=ax2D
+                neurons, mode="2d", realistic_diameters=realDia, fig=fig2D, ax=ax2D,
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,
             )
-            self.neuronMorph =  neurons ## store dendrites for further analysis
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
             ax2D.set_title("{0}".format(fname), fontsize=12, color="k")
-            pv = self.splitViewTab_morph.getParTreePars("Analysis")
-            if pv["Options"][1]["Draw contour"][0]:
-                if custom_data is not np.nan:
-                    ax2D.plot(
-                        custom_data[:, 0],
-                        custom_data[:, 1],
-                        "gray",
-                        label="Pia",
-                        linewidth=0.5,
-                    )
+
             # ax3D.set_zlim(zmin=max_scaling[0], zmax=max_scaling[1])
             print("Neuron morphology loaded!")
-            ## get summary
-            # self.splitViewTab_morph.tables['Summary'].clear()
-            number_of_neurites = morphor_nm.get("number_of_neurites", neurons)
-            # Extract the total number of sections
-            number_of_sections = morphor_nm.get("number_of_sections", neurons)
-            # Extract the soma radius
-            soma_radius = neurons.soma.radius
-            soma_center = neurons.soma.center
-            # Extract the number of sections per neurite
-            number_of_sections_per_neurite = morphor_nm.get(
-                "number_of_sections_per_neurite", neurons
-            )
             df_summary = {}
             df_summary["ASC file"] = [fname]
             df_summary = extractMorhporFeatures(neurons, df_summary)
+            df_summary = {k:[df_summary[k]] for k in df_summary} ## weird requr. of pandas
+            df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
+            df_summary  = np.array(
+                df_summary.to_records(index=False)
+            )  ## format dataframe for using in QtTable widget
+            self.splitViewTab_morph.tables["Summary"].clear()
             self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
-
             ax_densityX = fig2D.add_subplot(gs0[0,1], sharey = ax2D)
             ax_densityX.cla()
-            self.update_density(axis='y', ax = ax_densityX, flipAxes=True, addTitle=False)
+            self.update_density(axis='y', step_size=step_size, ax = ax_densityX,
+             flipAxes=True, addTitle=False,smoothBins=smoothBins,smoothStandardDeviation=smoothStandardDeviation)
             ax_densityX.xaxis.set_ticks_position('top')
             ax_densityX.xaxis.set_label_position('top') 
             ax_densityX.tick_params(labelbottom=False,labeltop=True)
             ax_densityX.spines["right"].set_visible(False)
             ax_densityX.spines["bottom"].set_visible(False)
             fig2D.subplots_adjust(top=0.92, bottom=0.04, hspace=0.001, wspace=0)
-            # ax_densityY = fig2D.add_subplot(gs0[0,1], sharey = ax2D)
-            # ax_densityY.cla()
-            # self.update_density(axis='y', ax = ax_densityY, flipAxes=True, addTitle=False)
-        
+
         ax2D.axis("off")
-        if hasattr(neurons, "neurons"):
-            ax2D.set_xlim([min(xlim0) - 250, max(xlim0) + 200])
-            ax2D.set_ylim([min(ylim0) - 250, max(ylim0) + 200])
-            ax2D.margins(0.25)
+        self.splitViewTab_morph.matplotViews['2D'].draw()
         self.splitViewTab_morph.matplotViews["2D"].canvas.draw()
-        # fig2D.tight_layout()
+        fig2D.tight_layout()
+        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(0)
+        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
         # self.splitViewTab_morph.matplotViews['3D'].draw()
+
+        self.splitViewTab_morph.show()
 
     def minmaxDist(self, ps):
         """calculate minmial and maximal diameter
@@ -834,15 +823,19 @@ class MainWindow(QtWidgets.QMainWindow):
                     ax.set(title= "XY plane density")
                 self.morphAnaFigs_matplotView.draw()
                 self.morphAnaFigs_matplotView.canvas.draw()
-                self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(3)
             else:
                 print('Not a morphological object for sholl analysis')
-
-    def update_2D_density(self, ax=None, addTitle =True, neurite_type = NeuriteType.all, step_size=5,  useFullRange=True):
+            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+            
+    def update_2D_density(self, ax=None, addTitle =True, neurite_type = NeuriteType.all,
+     step_size=5,  useFullRange=True, showColorbar=False, showAxisValues=False,smoothBins=11,
+                smoothStandardDeviation=2):
             if self.neuronMorph is not None:
                 if ax is None:
                     fig = self.morphAnaFigs_matplotView.getFigure()
                     fig.clf()
+                axes = []
+                images = []
                 for ntype in [NeuriteType.all, NeuriteType.axon, NeuriteType.basal_dendrite, NeuriteType.apical_dendrite, 'All dendrite']:
                     if ntype == NeuriteType.all:
                         ax = fig.add_subplot(151, aspect='equal')
@@ -859,52 +852,55 @@ class MainWindow(QtWidgets.QMainWindow):
                     else:
                         ax = fig.add_subplot(155, aspect='equal')
                         ntypeName = "All dendrite"                       
-
+                    axes.append(ax)
                     if ntype != 'All dendrite':                     
                         d2d, xedges, yedges, centerH, centerV = sholl_2D_density(self.neuronMorph, step_size=step_size,
                          neurite_type=ntype,useFullRange=useFullRange)
                     else:
                         d2d, xedges, yedges, centerH, centerV = sholl_2D_density(self.neuronMorph, step_size=step_size,
                          neurite_type=[NeuriteType.basal_dendrite, NeuriteType.apical_dendrite], useFullRange=useFullRange)
-
-                    
-                    # ax = fig.add_subplot(111, aspect='equal')
-                    # ax.cla()                       
-                    # d2d, xedges, yedges, centerH, centerV = sholl_2D_density(self.neuronMorph, step_size=step_size,
-                    # maxNorm=True)
-
-                    # mask = d2d ==0  # mask = H1==0
-                    # d2d = np.ma.masked_array(d2d, mask)
-                    # im.set_data(xcenters, ycenters, d2d)
-                    # print(np.max(d2d), np.sum(d2d))
-                    # ax.images.append(im)
                     ax.cla() 
-                    soma = MATPLT.Circle((0, 0), 5, color='r')
-                    ax.add_patch(soma)
+
                     if len(d2d) > 0 :
+                        d2d = smooth2D(d2d, smoothBins, smoothStandardDeviation)
                         xedges -=centerH
                         yedges -=centerV
                         im = ax.imshow(np.transpose(d2d), extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],interpolation='bilinear', 
                         origin='lower')
+                        images.append(im)
+                        soma = MATPLT.Circle((0, 0), 5, color='r')
+                        ax.add_patch(soma)
                         if addTitle:
                             ax.set(title= f"{ntypeName} density")
-                    ax.axis('off')    
-                # fig.colorbar(im, orientation='vertical')
+                        if showColorbar:
+                            fig.colorbar(im, ax=ax, orientation='vertical', fraction=0.046, pad=0.04)
+                    else:
+                        ax.axis('off')
+                    if not showAxisValues:
+                        ax.axis('off')
+                if showAxisValues:
+                    axes[0].set_xlabel('X (um)')
+                    axes[0].set_ylabel('Y (um)')
+
                 fig.tight_layout()
                 self.morphAnaFigs_matplotView.draw()
                 self.morphAnaFigs_matplotView.canvas.draw()
-                self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(3)
+
             else:
                 print('Not a morphological object for sholl analysis')
+            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
     def update_density(self, axis='y', ax=None,step_size=1,
-     flipAxes=False, addTitle =True, neurite_type = NeuriteType.all):
+     flipAxes=False, addTitle =True, neurite_type = NeuriteType.all,
+     smoothBins=11,smoothStandardDeviation=2):
         if self.neuronMorph is not None:
             if ax is None:
                 fig = self.morphAnaFigs_matplotView.getFigure()
                 fig.clf()
                 ax = fig.add_subplot(111)
                 ax.cla()
+            else:
+                fig = ''
             colors = {NeuriteType.apical_dendrite:'m',
             NeuriteType.basal_dendrite: 'b',
             NeuriteType.axon:'r'}
@@ -918,7 +914,13 @@ class MainWindow(QtWidgets.QMainWindow):
                  neurite_type=neurite_type)
                 if density==[]:
                     continue
-                density = smooth(density,10)
+                density = smooth(density, window_len=smoothBins, std=smoothStandardDeviation,
+                window='gaussian')
+                ndiff = len(bin_edges) - len(density)
+                if ndiff > 0:
+                    bin_edges = bin_edges[ndiff:]
+                else:
+                    density = density[-ndiff:]
                 if flipAxes:
                     ax.plot(density, bin_edges-centerVal, color=c)
                     xlabel = "um per bin"
@@ -932,10 +934,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if addTitle:
                 ax.set(title= axis+" density")
             self.morphAnaFigs_matplotView.draw()
-            self.morphAnaFigs_matplotView.canvas.draw()
-            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(3)
+            self.morphAnaFigs_matplotView.canvas.draw()  
+            if fig != '':
+                fig.tight_layout()
         else:
             print('Not a morphological object for sholl analysis')
+        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+
 
     def update_sholl(self):
         if self.neuronMorph is not None:
@@ -954,9 +959,10 @@ class MainWindow(QtWidgets.QMainWindow):
             fig.tight_layout()
             self.morphAnaFigs_matplotView.draw()
             self.morphAnaFigs_matplotView.canvas.draw()
-            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(3)
+
         else:
             print('Not a morphological object for sholl analysis')
+        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
     def updateSliceView(self):
         if hasattr(self, "slice_viewROIs"):
@@ -1133,15 +1139,20 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             return
         self.prepareTree(fname)
+        self.currentAnMorphView = ''
 
     def prepareTree(self, fname):
         self.visulization_view.setCurrentIndex(5)
+        self.currentMorphTreeFile = fname
         if glob.glob(fname[:-4] + "_mod.ASC") == []:
             fname = cleanASCfile(fname)  ## to clean not-want sections
+        self.splitViewTab_morph.matplotViews["2D"].getFigure().clf()
+        self.morphAnaFigs_matplotView.getFigure().clf()
         self.updateTreeMorphView(fname)
-        # if fname[-8:] == "_mod.ASC":
-        #     os.remove(fname)
-        self.currentMorphTreeFile = fname
+        print('morphfile', fname, fname[-8:])
+        if fname[-8:] == "_mod.ASC":
+            os.remove(fname)
+
 
     def importSlice_clicked(self):
         self.updateSliceView()
@@ -1301,12 +1312,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bd_dialog  = TemplateBaseClass()
         self.bd_dialog_form = WindowTemplate()
         self.bd_dialog_form.setupUi(self.bd_dialog)
-        # self.bd_dialog_form.fileButton.clicked.connect(self.batchGenesFile)
-        # self.bd_dialog_form.buttonBox.clicked.connect(self.buttonBoxResponse)
         self.bd_dialog.exec_()
-
-    # def sliceFPView_plot(self):
-    #     print(self.selTreesFP)
 
     def updateEvents(self):
         self.events.updateCurrentSweep()
@@ -3282,6 +3288,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.hideSpikePanels()
         self.pia = None
         self.neuronsData = None
+        self.neuronMorph =  None 
         self.spikeTableSavePath = ""
 
     def resetAll_clicked(self):
@@ -6982,29 +6989,47 @@ class MainWindow(QtWidgets.QMainWindow):
         step_size=pv['Options'][1]['Bin size (um)'][0]
         anlge_step_size=pv['Options'][1]['Angle bin (degree)'][0]*np.pi/180
         useFullRange=pv['Options'][1]['Use full range for density plot'][0]
+        showColorBar=pv['Options'][1]['Show color bar for density plot'][0]
+        showAxisVal=pv['Options'][1]['Show axis for density plot'][0]
+        smoothBins= pv['Options'][1]['Gaussian window size (num. bins)'][0]
+        smoothStandardDeviation = pv['Options'][1]['Std of Gaussian kernel (num. bins)'][0]
         for param, change, data in changes:
             childName = param.name()
+            if childName in [ "Rotate tree (degree)", "Draw contour", "Ignore diameters", "Scale bar length"]:
+                fname = cleanASCfile(
+                    self.currentMorphTreeFile
+                )  ## to clean not-wanted sections
+                self.updateTreeMorphView(fname)
+                if fname[-8:] == "_mod.ASC":
+                    os.remove(fname)
+            if childName in ["Rotate tree (degree)", "Bin size (um)", "Gaussian window size (num. bins)",
+             "Std of Gaussian kernel (num. bins)", "Angle bin (degree)", "Use full range for density plot",
+             "Show color bar for density plot", "Show axis for density plot"]:
+                if self.currentAnMorphView!="":
+                    childName = self.currentAnMorphView
             if childName == "Sholl analysis":
                 self.update_sholl()
-            if childName == "X axis density":
-                self.update_density('x',step_size=step_size)
-            if childName == "Y axis density":
-                self.update_density('y',step_size=step_size)
-            if childName == "XY plane density":
-                self.update_2D_density(step_size=step_size, useFullRange=useFullRange)
-            if childName == "XY polar density":
+                self.currentAnMorphView = childName
+            if childName in ["X axis density"]:
+                self.update_density('x',step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                self.currentAnMorphView = childName
+            if childName in ["Y axis density"]:
+                self.update_density('y',step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                self.currentAnMorphView = childName
+            if childName in ["XY plane density"]:
+                self.update_2D_density(step_size=step_size, useFullRange=useFullRange,
+                showColorbar=showColorBar, showAxisValues=showAxisVal,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                self.currentAnMorphView = childName
+            if childName in ["XY polar density"]:
                 self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size)
+                self.currentAnMorphView = childName
             if childName == "Update cell names":
                 self.updateInterCellDistance()
             elif childName == "Distance to Pia":
                 self.measureDist2Pia()
-            elif childName == "Draw contour":
-                fname = cleanASCfile(
-                    self.currentMorphTreeFile
-                )  ## to clean not-want sections
-                self.updateTreeMorphView(fname)
-                if fname[-8:] == "_mod.ASC":
-                    os.remove(fname)
             elif childName == "Export High resolution figure":
                 dpi = pv["Save options"][1]["DPI"][0]
                 format = pv["Save options"][1]["Format"][0]

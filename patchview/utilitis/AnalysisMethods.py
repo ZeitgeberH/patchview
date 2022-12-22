@@ -8,7 +8,7 @@ import numpy as np
 from scipy import signal
 import yaml
 from patchview.HekaIO.HekaHelpers import HekaBundleInfo
-
+from scipy.ndimage import gaussian_filter
 
 def loadYAML(filename):
     """open yaml file for parameters"""
@@ -253,7 +253,13 @@ def padding_(ndiff,   bin_array, padVal=0):
         pad_array = np.pad(bin_array, (leftPadd, rightPadd),'constant', constant_values=(padVal, padVal))
     return pad_array
     
-def smooth(x,window_len=10,window='hanning'):
+def smooth2D(data, window_len=10, std=2):
+    ''' smooth 2d image with gaussian kernel
+    '''
+    truncatN = window_len//2
+    return gaussian_filter(data, sigma=std, order=0, output=None, mode='constant', cval=0.0, truncate=truncatN)
+
+def smooth(x, window_len=10, std=2, window='hanning'):
     """smooth the data using a window with requested size.
     
     This method is based on the convolution of a scaled window with the signal.
@@ -276,8 +282,10 @@ def smooth(x,window_len=10,window='hanning'):
     #print(len(s))
     if window == 'flat': #moving average
         w=np.ones(window_len,'d')
+    elif window == 'gaussian':
+        w = signal.gaussian(window_len, std=std)
     else:
-        w=eval('np.'+window+'(window_len)')
+        w =eval('np.'+window+'(window_len)')
     y=np.convolve(w/w.sum(),s,mode='valid')
     pn = window_len//2
     return y[(pn-1):-pn]

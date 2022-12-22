@@ -80,10 +80,10 @@ def sholl_single_axis(n, step_size=1, axis='x', neurite_type=NeuriteType.all):
         Return density (um per length step). distance is center at soma center.
     '''
     segment_midpoints = morphor_nm.get('segment_midpoints', n, neurite_type=neurite_type)
-    segment_length = morphor_nm.get('segment_lengths', n, neurite_type=neurite_type)
+    segment_length = np.array(morphor_nm.get('segment_lengths', n, neurite_type=neurite_type))
     if len(segment_midpoints)==0:
-        return [], [], [], []      
-    n_density = np.array(segment_midpoints[:, 'xyz'.index(axis)]) 
+        return [], [], [], []     
+    n_density = np.array(segment_midpoints)[:, 'xyz'.index(axis)]
     maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
     ps_min, ps_max = np.min(n_density), np.max(n_density)
     if axis == 'x':
@@ -113,8 +113,8 @@ def sholl_2D_density(n,  step_size=2, neurite_type=NeuriteType.all, maxNorm=Fals
 
     if len(segment_midpoints)==0:
         return [], [], [], [], []
-    x_pts = np.array(segment_midpoints[:, 'xyz'.index('x')])     
-    y_pts = np.array(segment_midpoints[:, 'xyz'.index('y')])
+    x_pts = np.array(segment_midpoints)[:, 'xyz'.index('x')]
+    y_pts = np.array(segment_midpoints)[:, 'xyz'.index('y')]
     if useFullRange == False:      
         px_min, px_max = np.min(x_pts), np.max(x_pts)     
         py_min, py_max = np.min(y_pts), np.max(y_pts) 
@@ -123,8 +123,8 @@ def sholl_2D_density(n,  step_size=2, neurite_type=NeuriteType.all, maxNorm=Fals
     else:
         segment_midpoints = morphor_nm.get('segment_midpoints', n, neurite_type=NeuriteType.all)
         segment_length_ = morphor_nm.get('segment_lengths', n, neurite_type=NeuriteType.all)
-        x_pts_ = np.array(segment_midpoints[:, 'xyz'.index('x')])     
-        y_pts_ = np.array(segment_midpoints[:, 'xyz'.index('y')])
+        x_pts_ = np.array(segment_midpoints)[:, 'xyz'.index('x')]     
+        y_pts_ = np.array(segment_midpoints)[:, 'xyz'.index('y')]
         px_min, px_max = np.min(x_pts_), np.max(x_pts_)     
         py_min, py_max = np.min(y_pts_), np.max(y_pts_) 
         nbinX = int((px_max - px_min)/step_size)    
