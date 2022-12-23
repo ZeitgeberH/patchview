@@ -105,6 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Configure Qt GUI:
         Main window + splitters to let user resize panes
         """
+        
         self.make_layout()
         ## menu bar
         self.add_menubar()
@@ -115,11 +116,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.MouseMode = pg.ViewBox.RectMode
-        self.mainFrame = pg.QtGui.QWidget()
-        self.mainFrame.setLayout(self.MainLayout)
         self.setCentralWidget(self.mainFrame)
         self.plotItemList = []  ## collect all plot handles
         self.currentAnMorphView= []
+        self.mainFrame.show()
 
     def add_selectedDatFile(self, filePath):
         """adding file to the file list if not exist already"""
@@ -127,7 +127,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileList.addTopLevelItem(i1)
 
     def make_layout(self):
-        self.MainLayout = pg.QtGui.QGridLayout()
+        self.mainFrame = pg.LayoutWidget() 
+        self.MainLayout =  self.mainFrame.layout
+        self.frame_splitter = QSplitter(QtCore.Qt.Horizontal) ## main splitter
+        self.MainLayout.addWidget(self.frame_splitter, 1, 0, 1, 1)
         self.file_view = FileView(self, self.root)
         self.options_view = OptionsView(self)
         self.cellFeatures_view = TableView(self)
@@ -162,16 +165,15 @@ class MainWindow(QtWidgets.QMainWindow):
             0
         ]  ## this is to update current pulse tree to be manipulated
         self.trees_view.currentChanged.connect(self.updateCurrentPulseTree)
-
-        # splitter for file browswer (top) and  pul view (bottom)
-        self.tree_splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        # splitter for file browser (top) and  pul view (bottom)
+        self.tree_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.tree_splitter.setStretchFactor(0, 1)
         self.tree_splitter.setStretchFactor(1, 9)
         ### top panel: file browser (left), list of selected files (right)
         self.tree_splitter.addWidget(self.files_view)
 
         ### middle panel: current dat file tree (left), selected series/sweeps (right)
-        self.selectedTrees_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        self.selectedTrees_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.tree_splitter.addWidget(self.selectedTrees_splitter)
 
         self.selectedFilesTabView = TabView(self, enableContextMenu=True)
@@ -210,16 +212,16 @@ class MainWindow(QtWidgets.QMainWindow):
             "Spontaneous": self.selTreesSP,
         }
 
-        ### Bottom panel: recording paramters
+        ### Bottom panel: recording parameters
         self.parameters_view = TabView(self)
         self.tree_splitter.addWidget(self.parameters_view)
         self.parameter_Tab = TableView(self)
         self.parameters_view.addTab(self.parameter_Tab, "Recording parameters")
 
         # splitter for plots
-        self.plot_splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        self.plot_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
 
-        self.topPlot_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## first row
+        self.topPlot_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)  ## first row
         self.plot_splitter.addWidget(self.topPlot_splitter)
 
         self.trace_view = PlotView(self.topPlot_splitter)  ## first row, first column
@@ -231,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.topPlot_splitter.setStretchFactor(0, 2)
         self.topPlot_splitter.setStretchFactor(1, 1)
 
-        self.matplot_splitter = QtGui.QSplitter(
+        self.matplot_splitter = QtWidgets.QSplitter(
             QtCore.Qt.Horizontal
         )  ##  second row. i want to split the bottom into tow colomns
         self.plot_splitter.addWidget(self.matplot_splitter)
@@ -296,11 +298,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.visulization_view.addTab(self.sliceView, self.sliceView.title)
         ## Event detection GUI
-        self.event_Vsplitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+        self.event_Vsplitter = QSplitter(QtCore.Qt.Vertical)
         self.visulization_view.addTab(self.event_Vsplitter, "Event detection")
 
         ## first row, first column
-        self.event_TopSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## top row
+        self.event_TopSplitter = QSplitter(QtCore.Qt.Horizontal)  ## top row
         self.event_Vsplitter.addWidget(self.event_TopSplitter)
         self.event_traceView = PlotView(self.event_TopSplitter)  ## plot original trace
 
@@ -313,7 +315,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )  ## we want long and narrwow window
         self.event_TopSplitter.setStretchFactor(1, 4)
         ## second row, horinzontal s;itter
-        self.event_BottomSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## bottom row
+        self.event_BottomSplitter = QSplitter(QtCore.Qt.Horizontal)  ## bottom row
 
         ## add tabs for parameters
         self.eventPar_tabview = TabView(self)
@@ -410,7 +412,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.eventData_tabview.addTab(self.eventTable, "Event List")
 
         ## figure tab for event detection
-        event_plotVsplitter = QtGui.QSplitter(
+        event_plotVsplitter = QSplitter(
             QtCore.Qt.Vertical
         )  ## split this if we want more plots
         self.event_matplotView1 = MatplotView()
@@ -444,8 +446,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph = splitViewTab_morph
         self.visulization_view.addTab(splitViewTab_morph, splitViewTab_morph.title)
 
-        # horizontal splitter
-        self.frame_splitter = QtGui.QSplitter(QtCore.Qt.Horizontal)
 
         ## add a right tool bar!
         self.frame_splitter.addWidget(self.tree_splitter)
@@ -456,8 +456,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree_splitter.setStretchFactor(0, 3)
         self.tree_splitter.setStretchFactor(1, 5)
         self.tree_splitter.setStretchFactor(2, 1)
-        # add frame_splitter to main layout
-        self.MainLayout.addWidget(self.frame_splitter, 0, 0)
+
 
     def event_exportViewedEvents(self):
         pv = self.event_pd_view.p.getValues()
@@ -1192,17 +1191,17 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         set up manu bar for the main window
         """
-        self.mbar = pg.QtGui.QMenuBar()
-        self.MainLayout.setMenuBar(self.mbar)
+        self.mbar = QMenuBar()
+        self.MainLayout.addWidget(self.mbar, 0, 0)
 
         self.fileMenu = self.mbar.addMenu("&File")
-        self.saveFileAction = pg.QtGui.QAction("&Export .plk")
+        self.saveFileAction = QAction("&Export .plk")
         #        self.saveFileAction.setShortcut("Ctrl+s")
         self.saveFileAction.setStatusTip("Export data to pickle object")
         self.saveFileAction.triggered.connect(self.save_clicked)
         self.fileMenu.addAction(self.saveFileAction)
 
-        self.saveFileAction2 = pg.QtGui.QAction("&Export .NWB")
+        self.saveFileAction2 = QAction("&Export .NWB")
         self.saveFileAction2.setShortcut("Ctrl+s")
         self.saveFileAction2.setStatusTip("Export data NWB format")
         self.saveFileAction2.triggered.connect(self.saveNWB_clicked)
@@ -1210,13 +1209,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.fileMenu.addSeparator()
 
-        self.resetAction = pg.QtGui.QAction("&Reset")
+        self.resetAction = QAction("&Reset")
         #        self.saveFileAction.setShortcut("Ctrl+s")
         self.resetAction.setStatusTip("Reset all wigets")
         self.resetAction.triggered.connect(self.resetAll_clicked)
         self.fileMenu.addAction(self.resetAction)
 
-        self.exitAction = pg.QtGui.QAction("&Exit")
+        self.exitAction = QAction("&Exit")
         self.exitAction.triggered.connect(self.exit_clicked)
         self.fileMenu.addAction(self.exitAction)
 
@@ -1228,13 +1227,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.AnalysisMenu.addAction(self.AnaAction4)
 
         self.VisualMenu = self.mbar.addMenu("&Visualization")
-        self.VisualAction2 = pg.QtGui.QAction("&Show averaged traces")
+        self.VisualAction2 = QAction("&Show averaged traces")
         self.VisualAction2.setShortcut("Ctrl+m")
         self.VisualAction2.setStatusTip("Plot averaged stimulated response")
         self.VisualAction2.triggered.connect(self.VisualAction2_clicked)
         self.VisualMenu.addAction(self.VisualAction2)
 
-        self.VisualAction3 = pg.QtGui.QAction("&Show aligned spikes")
+        self.VisualAction3 = QAction("&Show aligned spikes")
         self.VisualAction3.setShortcut("Alt+s")
         self.VisualAction3.setStatusTip("Plot aligned spikes during each sweep")
         self.VisualAction3.triggered.connect(
@@ -1242,7 +1241,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )  ## fine tune firing pattern plotting with user define parameters
         self.VisualMenu.addAction(self.VisualAction3)
 
-        self.VisualAction4 = pg.QtGui.QAction("&Show concatenated trace")
+        self.VisualAction4 = QAction("&Show concatenated trace")
         self.VisualAction4.setStatusTip("Plot concatenated trace")
         self.VisualAction4.triggered.connect(
             self.choose2PlotSP
@@ -1251,25 +1250,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         self.OptionMenu = self.mbar.addMenu("&Option")
-        self.OptionAction2 = pg.QtGui.QAction("&Switch background color")
+        self.OptionAction2 = QAction("&Switch background color")
         # OptionAction1.setShortcut("Ctrl+a")
         self.OptionAction2.triggered.connect(self.switchBackground_clicked)
         self.OptionMenu.addAction(self.OptionAction2)
 
-        self.OptionAction3 = pg.QtGui.QAction("&Spike panels", self, checkable=True)
+        self.OptionAction3 = QAction("&Spike panels", self, checkable=True)
         # OptionAction1.setShortcut("Ctrl+a")
         self.OptionAction3.triggered.connect(self.hideSpikePanels_clicked)
         self.OptionMenu.addAction(self.OptionAction3)
         self.OptionAction3.setChecked(False)  # .isChecked()
 
-        # self.OptionAction4 = pg.QtGui.QAction(
+        # self.OptionAction4 = QAction(
         #     "&Show 3D firing pattern", self, checkable=True
         # )
         # self.OptionAction4.triggered.connect(self.FiringPattern3D_clicked)
         # self.OptionMenu.addAction(self.OptionAction4)
         # self.OptionAction4.setChecked(False)
 
-        self.OptionAction5 = pg.QtGui.QAction(
+        self.OptionAction5 = QAction(
             "&Remove stimuli artifacts", self, checkable=True
         )
         self.OptionAction5.triggered.connect(self.removeStimArtifacts_clicked)
@@ -1278,7 +1277,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.OptionMenu.addAction(self.OptionAction5)
 
         self.dv2dt2 = False  ## by default, do not calucate second order
-        self.OptionAction6 = pg.QtGui.QAction(
+        self.OptionAction6 = QAction(
             "&dv^2/dt^2 vs dv/dt", self, checkable=True
         )
         # OptionAction1.setShortcut("Ctrl+a")
@@ -1287,7 +1286,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.OptionAction6.setChecked(False)  # .isChecked()
 
         self.batchFPana = False  ## by default, do not plot when batch processing
-        self.OptionAction7 = pg.QtGui.QAction(
+        self.OptionAction7 = QAction(
             "Show plots for firing pattern batch analysis", self, checkable=True
         )
         # OptionAction1.setShortcut("Ctrl+a")
@@ -1307,11 +1306,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.OptionMenu.addAction(self.OptionAction8)
 
         self.HelpMenu = self.mbar.addMenu("&About")
-        self.HelpAction1 = pg.QtGui.QAction("&Documentation")
+        self.HelpAction1 = QAction("&Documentation")
         self.HelpAction1.triggered.connect(self.link2Doc_clicked)
         self.HelpMenu.addAction(self.HelpAction1)
 
-        self.HelpAction3 = pg.QtGui.QAction("&LICENSE")
+        self.HelpAction3 = QAction("&LICENSE")
         self.HelpAction3.setStatusTip("BSD-3")
         self.HelpAction3.triggered.connect(self.License_clicked)
         self.HelpMenu.addAction(self.HelpAction3)
@@ -6958,7 +6957,6 @@ class MainWindow(QtWidgets.QMainWindow):
         return x, y, D
 
     def measureDist2Pia(self):
-
         if self.pia is not None:
             df = pd.DataFrame(self.pia[:, :2], columns=["x", "y"]).sort_values(
                 by="x", inplace=False
@@ -7102,7 +7100,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def main(app):
     main = MainWindow(app)
-    main.show()
+    main.mainFrame.show() 
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

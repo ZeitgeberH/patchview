@@ -47,12 +47,6 @@ params = [
         "type": "group",
         "children": [
             {"name": "Root Directory", "type": "str", "value": "D:\Mhu\Projects"},
-            {
-                "name": "Background Color",
-                "type": "color",
-                "value": "000",
-                "tip": "backgroupd color for graph",
-            },
             {"name": "Color map", "type": "colormap"},
         ],
     },

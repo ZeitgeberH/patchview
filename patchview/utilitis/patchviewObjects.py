@@ -5,7 +5,9 @@ Created on Mon Dec 13 11:41:59 2021
 @author: MHu
 """
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem
+from PyQt5.QtWidgets import *
+# from PyQt5.QtWidgets import QSpinBox, QDoubleSpinBox, QGridLayout, QGroupBox, QFormLayout, QTabWidget, QTableWidget, QHeaderView
+# from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QSizePolicy, QScrollArea, QFrame, QSplitter, QToolButton, QMenu, QAction
 import pyqtgraph as pg
 from pyqtgraph import QtGui
 from pyqtgraph import GraphicsLayoutWidget
@@ -523,7 +525,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
         self.setHeaderLabels(["Node", "Label"])
         self.setColumnWidth(0, 200)
         # allow multi selection
-        self.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         # bind event
         # self.itemSelectionChanged.connect(self.on_selection_changed)
@@ -750,37 +752,37 @@ class OptionsView(pg.QtWidgets.QWidget):
         self.frame = parent
 
         # init inputs
-        self.extract_spikes_toggle = QtGui.QCheckBox("Extract spikes")
+        self.extract_spikes_toggle = QCheckBox("Extract spikes")
         self.extract_spikes_toggle.setChecked(False)
 
-        self.group_toggle = QtGui.QCheckBox("Group spikes")
+        self.group_toggle = QCheckBox("Group spikes")
         self.group_toggle.setChecked(False)
 
-        self.arg_type = QtGui.QComboBox()
+        self.arg_type =QComboBox()
         self.arg_type.addItems(["max", "min"])
-        self.arg_type_label = QtGui.QLabel("Center on window")
+        self.arg_type_label = QLabel("Center on window")
 
-        self.spike_edge = QtGui.QComboBox()
+        self.spike_edge = QComboBox()
         self.spike_edge.addItems(["rising", "falling"])
-        self.spike_edge_label = QtGui.QLabel("Threshold edge")
+        self.spike_edge_label = QLabel("Threshold edge")
 
-        self.spike_thresh = QtGui.QSpinBox()
+        self.spike_thresh = QSpinBox()
         self.spike_thresh.setKeyboardTracking(True)
         self.spike_thresh.setRange(1, 10)  # ms
         self.spike_thresh.setValue(2)
         self.spike_thresh.setSingleStep(1)
-        self.spike_thresh_label = QtGui.QLabel("Spike thresh")
+        self.spike_thresh_label = QLabel("Spike thresh")
 
-        self.group_window = QtGui.QDoubleSpinBox()
+        self.group_window = QDoubleSpinBox()
         self.group_window.setKeyboardTracking(False)
         self.group_window.setRange(0.01, 1000)  # ms
         self.group_window.setValue(2.5)
         self.group_window.setSingleStep(2.5)
-        self.group_window_label = QtGui.QLabel("Group window (ms)")
+        self.group_window_label =QLabel("Group window (ms)")
 
         # layout and add
-        layout = QtGui.QVBoxLayout()
-        grid_layout = QtGui.QGridLayout()
+        layout = QVBoxLayout()
+        grid_layout = QGridLayout()
 
         grid_layout.addWidget(self.extract_spikes_toggle, 0, 0, 1, 2)
         grid_layout.addWidget(self.group_toggle, 1, 0, 1, 2)
@@ -1195,8 +1197,8 @@ class SplitView(pg.QtWidgets.QSplitter):
         self.parTreeViews = {}  ## dictionry to add parameter trees
         self.parsTree_values_init = {}
         self.func = ""
-        self.topSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## bottom row
-        self.bottomSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## bottom row
+        self.topSplitter = QSplitter(QtCore.Qt.Horizontal)  ## bottom row
+        self.bottomSplitter = QSplitter(QtCore.Qt.Horizontal)  ## bottom row
         self.addWidget(self.topSplitter)
         self.addWidget(self.bottomSplitter)
 
@@ -1208,12 +1210,12 @@ class SplitView(pg.QtWidgets.QSplitter):
 
         # top row
         self.topSplitter.addWidget(self.top_tabs)
-        self.plotSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## bottom row
+        self.plotSplitter = QSplitter(QtCore.Qt.Horizontal)  ## bottom row
         self.top_tabs.addTab(self.plotSplitter, FigureTitle)
 
         # bottom row
         ## add a splitter. Left for parameters, Right for tables
-        self.bottomSplitter = QtGui.QSplitter(QtCore.Qt.Horizontal)  ## bottom row
+        self.bottomSplitter = QSplitter(QtCore.Qt.Horizontal)  ## bottom row
         self.addWidget(self.bottomSplitter)
 
         ## bottom left tab areas
