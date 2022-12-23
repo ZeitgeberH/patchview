@@ -137,7 +137,7 @@ Dependent on the content of the file, Patchview can perform:
 
 * **pairwise distance of multiple somas**: this is automatically done if the reconstruction has multiple somas in it (check the test file: `test_multiSoma.ASC`)
 
-*  **Update cell names**: this can be done for a multi-soma file. The `Name` column in the `Summary` table can be edited. After the editing, clicking `Update cell names` will update the Pair names in the  pairwise distance table  in `Distance (um)` tab. 
+*  **Update cell names**: this can be done for a multi-soma file. The `Name` column in the `Summary` table can be edited. After the editing, clicking `Update cell names` will update the Pair names in the  pairwise distance table  in `Distance (um)` tab.
   
 * **Sholl analysis**: if the reconstruction has at least one neurite, this will perform Sholl analysis (counting neurite numbers in a ring from certain soma distance). A line plot (count vs distance) is shown in the `Figures` tab. Try `test.ASC`.
 
@@ -145,14 +145,16 @@ Dependent on the content of the file, Patchview can perform:
     :width: 800
     :alt: Alternative text
 
-* **Density analysis**: Visualizing neurites density in either Cartesian or polar coordinates
+* **Density analysis**: Visualizing neurites density in either Cartesian or polar coordinates.
+  
 .. image:: resources/images/density.png
     :width: 800
-    :alt: Alternative text
+    :alt: Alternative tex
     
 .. image:: resources/images/morphor_polar.png
     :width: 400
     :alt: Alternative text
+
 *  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
 .. image:: resources/images/measurePiaToSomas.png
