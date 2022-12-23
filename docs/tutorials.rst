@@ -145,7 +145,7 @@ Dependent on the content of the file, Patchview can perform:
     :width: 800
     :alt: Alternative text
 
-* **Density analysis**: in either cartesian or polar coordinates
+* **Density analysis**: Visualizing neurites density in either Cartesian or polar coordinates
 .. image:: resources/images/density.png
     :width: 800
     :alt: Alternative text
