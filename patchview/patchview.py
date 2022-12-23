@@ -787,7 +787,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ax_densityX.tick_params(labelbottom=False,labeltop=True)
             ax_densityX.spines["right"].set_visible(False)
             ax_densityX.spines["bottom"].set_visible(False)
-            fig2D.subplots_adjust(top=0.92, bottom=0.04, hspace=0.001, wspace=0)
+            fig2D.subplots_adjust(top=0.904, bottom=0.04, left=0.0, right=0.90, hspace=0.0, wspace=0.254)
 
         ax2D.axis("off")
         self.splitViewTab_morph.matplotViews['2D'].draw()
@@ -824,6 +824,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fig.colorbar(pc, orientation='vertical')
                 if addTitle:
                     ax.set(title= "XY plane density")
+                self.morphAnaFigs_matplotView.figure.subplots_adjust(top=0.861,bottom=0.02,left=0.0,right=0.7,hspace=0.2,wspace=0.0)
                 self.morphAnaFigs_matplotView.draw()
                 self.morphAnaFigs_matplotView.canvas.draw()
             else:

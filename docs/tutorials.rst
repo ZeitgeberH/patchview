@@ -145,15 +145,14 @@ Dependent on the content of the file, Patchview can perform:
     :width: 800
     :alt: Alternative text
 
-<<<<<<< HEAD
-Click "Sholl analysis" to perform "Sholl analysis" from NeuroM package.
-
-.. image:: resources/images/shollAna1.png
+* **Density analysis**: in either cartesian or polar coordinates
+.. image:: resources/images/density.png
     :width: 800
     :alt: Alternative text
-
-=======
-
+    
+.. image:: resources/images/morphor_polar.png
+    :width: 400
+    :alt: Alternative text
 *  **Distance to Pia**: if the reconstruction contains a entry labeled "Pia" (check the test file: `test_multiSoma.ASC`), this will measure Euclidean distance from the center of a soma to the Pia. Measured results are shown in the `Distance to Pia` column in `Summary` table.
 
 .. image:: resources/images/measurePiaToSomas.png
@@ -194,4 +193,3 @@ Note: significant coupling is highlighted with red title (from chan 8 to chan2 i
 File menu provides two exporting options. `Export .pkl` exports currently selected series into a Python pickle object. `Export .NWB` exports into neurodata-without-borders format.
 
 
->>>>>>> main
