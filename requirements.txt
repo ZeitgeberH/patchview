@@ -24,7 +24,7 @@ scipy
 pandas
 matplotlib
 scikit-image
-#git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
+NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
 morphio
 scikit-learn
 sklearn

@@ -7,8 +7,7 @@ inlcude enviroment.yml
 include requirements.txt
 include README.rst
 exclude .gitignore
-
-recursive-include tests *
+recursive-exclude tests *
 recursive-exclude .github
 recursive-exclude build *
 recursive-exclude dist *

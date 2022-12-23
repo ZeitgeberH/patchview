@@ -55,7 +55,7 @@ setup(
     keywords='patchview',
     name='patchview',
     packages=find_packages(include=['patchview','patchview/Data',\
-        'patchview/HekaIO','patchview/neurom','patchview/utilitis']),
+        'patchview/HekaIO','patchview/utilitis']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
