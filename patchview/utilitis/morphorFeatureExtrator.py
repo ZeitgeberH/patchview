@@ -104,6 +104,13 @@ def sholl_single_axis(n, step_size=1, axis='x', neurite_type=NeuriteType.all):
     return density, bin_edges, c, n_density
 
 def sholl_2D_density(n,  step_size=2, neurite_type=NeuriteType.all, maxNorm=False, useFullRange=False):
+    ''' sholl analysis in 2D
+    n: NeuroM neuron object with neurites
+    step_size: step size for analysis
+    neurite_type: list of neurite type to be analyzed
+    maxNorm: normalize by max value
+    useFullRange: use full range of soma radius
+    rmax: max radius for analysis'''
     if type(neurite_type) is not list:
         segment_midpoints = morphor_nm.get('segment_midpoints', n, neurite_type=neurite_type)
         segment_length = morphor_nm.get('segment_lengths', n, neurite_type=neurite_type)
@@ -145,7 +152,7 @@ def sholl_2D_density(n,  step_size=2, neurite_type=NeuriteType.all, maxNorm=Fals
         dataStatistcs = ret.statistic
     return dataStatistcs, ret.x_edge, ret.y_edge, soma_center[0], soma_center[1]
 
-def sholl_polar(n,  step_size=1, pho_step=5, angle_step=np.pi/16,  neurite_type=NeuriteType.all):
+def sholl_polar(n,  step_size=1, pho_step=5, angle_step=np.pi/16,  neurite_type=NeuriteType.all, rmax=None):
     dataStats, x_edge, y_edge, centerX, centerY = sholl_2D_density(n, step_size=step_size, neurite_type=neurite_type, maxNorm=False)
     polar_data = dataStats.reshape((-1,1))
     polar_coords_P = []
@@ -159,7 +166,11 @@ def sholl_polar(n,  step_size=1, pho_step=5, angle_step=np.pi/16,  neurite_type=
                 polar_coords_P.append(np.sqrt(x**2 + y**2))
                 polar_coords_A.append(np.arctan2(y,x))
             c += 1
-    rbins = np.linspace(0, np.max(polar_coords_P), int(np.max(polar_coords_P)//pho_step), endpoint=False)
+    if rmax is not None:
+        maxR = rmax
+    else:
+        maxR = np.max(polar_coords_P)
+    rbins = np.linspace(0, maxR, int(maxR//pho_step), endpoint=False)
     abins = np.linspace(-np.pi,np.pi, int(2*np.pi//angle_step), endpoint=True)          
     hist, _, _ = np.histogram2d(np.array(polar_coords_A), np.array(polar_coords_P), bins=(abins, rbins))
     A, R = np.meshgrid(abins, rbins)

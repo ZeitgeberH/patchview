@@ -18,6 +18,10 @@ import scipy.stats as stats
 from scipy.optimize import curve_fit
 import seaborn as sns
 sns.despine()
+sns.set_style("whitegrid")
+ ## installer requirement
+from sklearn.metrics import _pairwise_distances_reduction
+from sklearn.metrics._pairwise_distances_reduction import (_datasets_pair, _middle_term_computer)
 from patchview.ephys import ephys_features as ephys_ft
 from patchview.ephys import ephys_extractor as efex
 from patchview.ephys import extraEhpys_PV
@@ -35,6 +39,7 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
     smooth, smooth2D, padding_
 )
+import neurom
 from neurom.geom.transform import (translate, rotate)
 from patchview.utilitis import fitFuncs
 from patchview.utilitis.morphorFeatureExtrator import (
@@ -44,6 +49,7 @@ from patchview.utilitis.patchviewObjects import *
 import networkx as nx
 
 ## reading neuroluscida file
+import morphio
 from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
@@ -659,11 +665,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateTreeMorphView(self, fname):
         # try:
         pv = self.splitViewTab_morph.getParTreePars("Analysis")
-        if pv["Options"][1]["Draw contour"][0]:
+        if pv["Figure options"][1]["Draw contour"][0]:
             drawContour = True
         else:
             drawContour = False
-        if pv["Options"][1]["Ignore diameters"][0]:
+        if pv["Figure options"][1]["Ignore diameters"][0]:
             realDia = True
         else:
             realDia= False
@@ -750,10 +756,10 @@ class MainWindow(QtWidgets.QMainWindow):
             ax2D = fig2D.add_subplot(gs0[0,0])
             ax2D.cla()
             pv = self.splitViewTab_morph.getParTreePars("Analysis")
-            rotateAngle = pv["Options"][1]["Rotate tree (degree)"][0]
-            step_size=pv['Options'][1]['Bin size (um)'][0]
-            smoothBins=pv['Options'][1]['Gaussian window size (num. bins)'][0]
-            smoothStandardDeviation=pv['Options'][1]['Std of Gaussian kernel (num. bins)'][0]
+            rotateAngle = pv["Parameters"][1]["Rotate tree (degree)"][0]
+            step_size=pv['Parameters'][1]['Bin size (um)'][0]
+            smoothBins=pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
+            smoothStandardDeviation=pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
             if rotateAngle!=0:
                 neurons = rotate(neurons, [0,0,1], rotateAngle*np.pi/180)
             self.neuronMorph = neurons
@@ -812,28 +818,40 @@ class MainWindow(QtWidgets.QMainWindow):
                     maxDia = diameter
         return maxDia
 
-    def update_2D_polar_density(self, ax=None, addTitle =True, angle_step=np.pi/15, neurite_type = NeuriteType.all, step_size=5):
+    def update_2D_polar_density(self, ax=None, addTitle =True, angle_step=np.pi/15, 
+    neurite_type = NeuriteType.all, step_size=5, axiOps=None, showgrid=True, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
                     fig = self.morphAnaFigs_matplotView.getFigure()
                     fig.clf()
                     ax = fig.add_subplot(111,projection="polar")
-                    ax.cla()                       
-                hist, A, R = sholl_polar(self.neuronMorph, step_size=step_size, angle_step=angle_step)
-                pc = ax.pcolormesh(A, R, hist.T, cmap="magma_r")
+                    ax.cla()
+                rmax = None      
+                if axiOps is not None:
+                    if axiOps[0]:
+                        rmax = axiOps[1]            
+                hist, A, R = sholl_polar(self.neuronMorph, step_size=step_size, angle_step=angle_step,rmax=rmax)
+                MATPLT.style.use('ggplot')
+                MATPLT.rcParams["axes.axisbelow"] = False
+                pc = ax.pcolormesh(A, R, hist.T, cmap=cmap)
+                if showgrid:
+                    ax.grid(True, color='gray', lw=0.5)
+                else:
+                    ax.grid(False)
                 fig.colorbar(pc, orientation='vertical')
                 if addTitle:
                     ax.set(title= "XY plane density")
                 self.morphAnaFigs_matplotView.figure.subplots_adjust(top=0.861,bottom=0.02,left=0.0,right=0.7,hspace=0.2,wspace=0.0)
                 self.morphAnaFigs_matplotView.draw()
                 self.morphAnaFigs_matplotView.canvas.draw()
+                fig.tight_layout()
             else:
                 print('Not a morphological object for sholl analysis')
             self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
             
     def update_2D_density(self, ax=None, addTitle =True, neurite_type = NeuriteType.all,
      step_size=5,  useFullRange=True, showColorbar=False, showAxisValues=False,smoothBins=11,
-                smoothStandardDeviation=2):
+                smoothStandardDeviation=2, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
                     fig = self.morphAnaFigs_matplotView.getFigure()
@@ -870,7 +888,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         xedges -=centerH
                         yedges -=centerV
                         im = ax.imshow(np.transpose(d2d), extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],interpolation='bilinear', 
-                        origin='lower')
+                        origin='lower', cmap=cmap)
                         images.append(im)
                         soma = MATPLT.Circle((0, 0), 5, color='r')
                         ax.add_patch(soma)
@@ -950,7 +968,6 @@ class MainWindow(QtWidgets.QMainWindow):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.cla()
-            sns.set_style("whitegrid")
             for neurite in self.neuronMorph.neurites:
                 sholl_dist, sholl_bins = sholl_analysis(self.neuronMorph, step_size=step_size, neurite_type=neurite.type)
                 c = NeutriteColors[neurite.type]
@@ -6992,15 +7009,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def morph_analysis_event(self, param, changes):
         pv = self.splitViewTab_morph.getParTreePars("Analysis")
-        step_size=pv['Options'][1]['Bin size (um)'][0]
-        anlge_step_size=pv['Options'][1]['Angle bin (degree)'][0]*np.pi/180
-        useFullRange=pv['Options'][1]['Use full range for density plot'][0]
-        showColorBar=pv['Options'][1]['Show color bar for density plot'][0]
-        showAxisVal=pv['Options'][1]['Show axis for density plot'][0]
-        smoothBins= pv['Options'][1]['Gaussian window size (num. bins)'][0]
-        smoothStandardDeviation = pv['Options'][1]['Std of Gaussian kernel (num. bins)'][0]
+        step_size=pv['Parameters'][1]['Bin size (um)'][0]
+        anlge_step_size=pv['Parameters'][1]['Angle bin (degree)'][0]*np.pi/180
+        smoothBins= pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
+        smoothStandardDeviation = pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
+        useFullRange=pv['Figure options'][1]['Use full range for density plot'][0]
+        showColorBar=pv['Figure options'][1]['Show color bar for density plot'][0]
+        showAxisVal=pv['Figure options'][1]['Show axis for density plot'][0]
+        customAxiRange=pv['Figure options'][1]["Custom axis range"][1]
+        customRange_plane_activate = customAxiRange['plane density'][1]['activate'][0]
+        plOps = customAxiRange['plane density'][1]
+        customRange_planeAxisOptions = [customRange_plane_activate, plOps['X min'][0], 
+        plOps['X max'][0],plOps['Y min'][0],plOps['Y max'][0]]
+        customRange_polar_activate = customAxiRange['polar density'][1]['activate'][0]
+        customRange_polarAxisOptions = [customRange_polar_activate, customAxiRange['polar density'][1]['R max'][0]]
+        seabornStyle  = pv['Figure options'][1]["figure aesthetics"][0]
+        showgrid = pv['Figure options'][1]['Show grid'][0]
+        cmap = pv['Figure options'][1]['Color map'][0]
         for param, change, data in changes:
             childName = param.name()
+            if childName == "figure aesthetics":
+                sns.set_style(seabornStyle)
             if childName in [ "Rotate tree (degree)", "Draw contour", "Ignore diameters", "Scale bar length"]:
                 fname = cleanASCfile(
                     self.currentMorphTreeFile
@@ -7010,10 +7039,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     os.remove(fname)
             if childName in ["Rotate tree (degree)", "Bin size (um)", "Gaussian window size (num. bins)",
              "Std of Gaussian kernel (num. bins)", "Angle bin (degree)", "Use full range for density plot",
-             "Show color bar for density plot", "Show axis for density plot"]:
+             "Show color bar for density plot", "Show axis for density plot","figure aesthetics", "Color map"]:
                 if self.currentAnMorphView!="":
                     childName = self.currentAnMorphView
-            if childName == "Sholl analysis":
+            if childName in ["Sholl analysis"]:
                 self.update_sholl(step_size=step_size,smoothBins=smoothBins,
                 smoothStandardDeviation=smoothStandardDeviation)
                 self.currentAnMorphView = childName
@@ -7028,10 +7057,11 @@ class MainWindow(QtWidgets.QMainWindow):
             if childName in ["XY plane density"]:
                 self.update_2D_density(step_size=step_size, useFullRange=useFullRange,
                 showColorbar=showColorBar, showAxisValues=showAxisVal,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation)
+                smoothStandardDeviation=smoothStandardDeviation, cmap=cmap)
                 self.currentAnMorphView = childName
-            if childName in ["XY polar density"]:
-                self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size)
+            if childName in ["XY polar density", "R max"]:
+                self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size,
+                 axiOps = customRange_polarAxisOptions, showgrid=showgrid, cmap = cmap)
                 self.currentAnMorphView = childName
             if childName == "Update cell names":
                 self.updateInterCellDistance()

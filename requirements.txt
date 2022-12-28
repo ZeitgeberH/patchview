@@ -23,6 +23,7 @@ pytz
 scipy
 pandas
 matplotlib
+pycairo
 scikit-image
 NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
 morphio

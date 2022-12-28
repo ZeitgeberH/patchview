@@ -6,8 +6,6 @@ Created on Mon Dec 13 11:41:59 2021
 """
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import *
-# from PyQt5.QtWidgets import QSpinBox, QDoubleSpinBox, QGridLayout, QGroupBox, QFormLayout, QTabWidget, QTableWidget, QHeaderView
-# from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QSizePolicy, QScrollArea, QFrame, QSplitter, QToolButton, QMenu, QAction
 import pyqtgraph as pg
 from pyqtgraph import QtGui
 from pyqtgraph import GraphicsLayoutWidget
@@ -314,11 +312,11 @@ class SelectionView(pg.QtWidgets.QTreeWidget):
         # self.setHeaderLabels(['Node', 'Label','dat', 'dat_Index'])
         # self.setHeaderLabels(['Cell label', 'File','Series', 'Index'])
         if len(index) == 1:
-            item = pg.QtGui.QTreeWidgetItem(
+            item = QTreeWidgetItem(
                 [node_type, node_dat, node_label, node_datIndex]
             )
         else:
-            item = pg.QtGui.QTreeWidgetItem(
+            item = QTreeWidgetItem(
                 [node_label, node_dat, node_type, node_datIndex]
             )
 
@@ -601,9 +599,9 @@ class PulView(pg.QtWidgets.QTreeWidget):
             else:
                 node_label = ""
         if node_type[:2] == "V9":
-            item = pg.QtGui.QTreeWidgetItem([node_type[3:], node_label])
+            item = QTreeWidgetItem([node_type[3:], node_label])
         else:
-            item = pg.QtGui.QTreeWidgetItem([node_type, node_label])
+            item = QTreeWidgetItem([node_type, node_label])
         if len(index) == 2:
             self.seriesNode.append(node)
 
