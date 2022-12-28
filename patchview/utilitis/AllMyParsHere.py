@@ -47,7 +47,6 @@ params = [
         "type": "group",
         "children": [
             {"name": "Root Directory", "type": "str", "value": "D:\Mhu\Projects"},
-            {"name": "Color map", "type": "colormap"},
         ],
     },
     {
@@ -926,7 +925,7 @@ event_detection_helps = [
 
 Morphor_analysis = [
     {
-        "name": "Options",
+        "name": "Parameters",
         "type": "group",
         "children": [
             {
@@ -983,16 +982,45 @@ Morphor_analysis = [
                 "default": 15,
                 "siPrefix": False,
             },
-            {"name": "Use full range for density plot", "type": "bool", "value": True},
-            {"name": "Show color bar for density plot", "type": "bool", "value": True},
-            {"name": "Show axis for density plot", "type": "bool", "value": True},
-            {"name": "Ignore diameters", "type": "bool", "value": False},
-            {"name": "Draw contour", "type": "bool", "value": True},
+
             {"name": "Update cell names", "type": "action"},
         ],
     },
     {
-        "name": "Measurment",
+        "name": "Figure options",
+        "type": "group",
+        'expanded':False,
+        "children": [
+            {"name": "figure aesthetics", "type": "list",
+                "values": ["whitegrid", "darkgrid", "white", "dark", "ticks"],
+                "value": "whitegrid"},
+            {"name": "Use full range for density plot", "type": "bool", "value": True},
+            {"name": "Show color bar for density plot", "type": "bool", "value": True},
+            {"name": "Show grid", "type": "bool", "value": True},
+            {"name": "Show axis for density plot", "type": "bool", "value": True},
+            {"name": "Ignore diameters", "type": "bool", "value": False},
+            {"name": "Draw contour", "type": "bool", "value": True},
+            {"name": "Color map", "type": "list", "values":["rocket","hot","copper","gnuplot","inferno","magma"], "value": "rocket"},
+            {"name": "Custom axis range", "type": "group", 'expanded':False, "children": 
+            [
+                {"name":'plane density', "type": "group",'expanded':False, "enabled":False, "children":[
+                    {'name': 'activate', 'type': 'bool', "enabled":False,'value': False},
+                    {"name": "X min", "type": "float", "value": -500},
+                    {"name": "X max", "type": "float", "value": 500},
+                    {"name": "Y min", "type": "float", "value": -1000},
+                    {"name": "Y max", "type": "float", "value": 1000},
+                ]},
+                {"name":'polar density', "type": "group",'expanded':False, "children":[
+                    {'name': 'activate', 'type': 'bool', 'value': False},
+                    {"name": "R max", "type": "float", "value": 500},
+                ]
+                },
+            ],
+            },
+        ]
+    },
+    {
+        "name": "Measurement",
         "type": "group",
         "children": [
             {"name": "Sholl analysis", "type": "action"},
