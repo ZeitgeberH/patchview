@@ -4,7 +4,7 @@ Created on Tue Aug 11 15:42:29 2020
 
 @author: mhu
 """
-
+import pyqtgraph as pg
 ## global setting in the file tab
 params = [
     {
@@ -47,8 +47,17 @@ params = [
         "type": "group",
         "children": [
             {"name": "Root Directory", "type": "str", "value": "D:\Mhu\Projects"},
+            {
+                "name": "Default figure DPI",
+                "type": "int",
+                "value": 150,
+                "limits": (100, 500),
+                "default": 150,
+                "step": 50,
+            },
         ],
     },
+    
     {
         "name": "Save/Restore parameters",
         "type": "group",
@@ -937,6 +946,7 @@ Morphor_analysis = [
                 "default": 50,
                 "siPrefix": False,
             },
+            {"name": "Is Radius", "type": "bool", "value": True},
             {
                 "name": "Rotate tree (degree)",
                 "type": "float",
@@ -989,11 +999,23 @@ Morphor_analysis = [
     {
         "name": "Figure options",
         "type": "group",
-        'expanded':False,
+        'expanded':True,
         "children": [
-            {"name": "figure aesthetics", "type": "list",
+            {"name": "Figure aesthetics", "type": "list",
                 "values": ["whitegrid", "darkgrid", "white", "dark", "ticks"],
                 "value": "whitegrid"},
+            {
+            "name": "Neutrites color",
+            "type": "group",
+            "children": [
+            {"name": "Basal dendrite", "type": "color", "value": "b"},
+            {"name": "Apical dendrite", "type": "color", "value": "m"},
+            {"name": "All dendrites", "type": "color", "value": "c"},
+            {"name": "Axon", "type": "color", "value": "r"},
+            {"name": "All neurites", "type": "color", "value": "gray"},
+            {"name": "Soma", "type": "color", "value": "k"},
+            ],
+            },
             {"name": "Use full range for density plot", "type": "bool", "value": True},
             {"name": "Show color bar for density plot", "type": "bool", "value": True},
             {"name": "Show grid", "type": "bool", "value": True},
@@ -1032,7 +1054,7 @@ Morphor_analysis = [
         ],
     },
     {
-        "name": "Save options",
+        "name": "Export Morphology",
         "type": "group",
         "children": [
             {
@@ -1045,21 +1067,23 @@ Morphor_analysis = [
                 "siPrefix": False,
             },
             {
-                "name": "Size",
-                "type": "int",
-                "limits": (10, 100),
-                "value": 60,
-                "step": 5,
-                "default": 60,
-                "siPrefix": False,
-            },
-            {
                 "name": "Format",
                 "type": "list",
-                "values": ["svg", "eps", "png"],
+                "values": ["svg","emf","pdf", "eps", "png"],
                 "value": "svg",
             },
+            {"name": "Axis visible", "type": "bool", "value": False},
             {"name": "Export High resolution figure", "type": "action"},
+        ],
+    },
+    {
+        "name": "Export Morphology density",
+        "type": "group",
+        "children": [
+            {"name": "linear projections", "type": "bool", "value": True},
+            {"name": "xy cartesian", "type": "bool", "value": True},
+            {"name": "xy polar", "type": "bool", "value": False, "enabled": False},
+            {"name": "Save to csv", "type": "action"},
         ],
     },
 ]
@@ -1069,10 +1093,10 @@ Morphor_legend = [
         "name": "Color scheme",
         "type": "group",
         "children": [
-            {"name": "Basal dendtrite", "type": "str", "value": "Purple"},
-            {"name": "Apical dendtrite", "type": "str", "value": "Blue"},
-            {"name": "Axon", "type": "str", "value": "Red"},
-            {"name": "Soma", "type": "str", "value": "Black"},
+            {"name": "Basal dendtrite", "type": "color", "value": "b"},
+            {"name": "Apical dendtrite", "type": "color", "value": "m"},
+            {"name": "Axon", "type": "color", "value": "r"},
+            {"name": "Soma", "type": "color", "value": "k"},
         ],
     },
     {
@@ -1082,6 +1106,7 @@ Morphor_legend = [
             {
                 "name": "ignore diamters",
                 "type": "str",
+                "enabled": False,
                 "value": "When set True, will render each section's diamter accordingly",
             },
         ],

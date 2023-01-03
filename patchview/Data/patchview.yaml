@@ -14,3 +14,4 @@ Protocols:  ## existing patch protocols and alias
 Visulization:
     Plot stim: 1  ## if stim is used, plot it along the raw traces
     Downsampling: 1.0  ## plot less points to speed up
+    Default figure DPI: 150 ## matplotlib figure dot per inch

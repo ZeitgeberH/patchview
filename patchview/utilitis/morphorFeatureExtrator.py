@@ -8,7 +8,10 @@ from neurom import features
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 from neurom.core.morphology import Section
-
+from patchview.utilitis.AnalysisMethods import (
+    smooth, smooth2D, padding_
+)
+import pickle
 def getSomaStats(n):
     ''' Basic statistics for soma
     '''
@@ -84,8 +87,17 @@ def sholl_single_axis(n, step_size=1, axis='x', neurite_type=NeuriteType.all):
     ''' projection to single axis.
         Return density (um per length step). distance is center at soma center.
     '''
-    segment_midpoints = morphor_nm.get('segment_midpoints', n, neurite_type=neurite_type)
-    segment_length = np.array(morphor_nm.get('segment_lengths', n, neurite_type=neurite_type))
+    if type(neurite_type) is not list:
+        segment_midpoints = morphor_nm.get('segment_midpoints', n, neurite_type=neurite_type)
+        segment_length = np.array(morphor_nm.get('segment_lengths', n, neurite_type=neurite_type))
+    else:
+        segment_midpoints = []
+        segment_length = []
+        for neurite in neurite_type:
+            segment_midpoints.extend(morphor_nm.get('segment_midpoints', n, neurite_type=neurite))
+            segment_length.extend(np.array(morphor_nm.get('segment_lengths', n, neurite_type=neurite)))
+        segment_midpoints = np.array(segment_midpoints)
+        segment_length = np.array(segment_length)
     if len(segment_midpoints)==0:
         return [], [], [], []     
     n_density = np.array(segment_midpoints)[:, 'xyz'.index(axis)]
@@ -170,7 +182,7 @@ def sholl_polar(n,  step_size=1, pho_step=5, angle_step=np.pi/16,  neurite_type=
         maxR = rmax
     else:
         maxR = np.max(polar_coords_P)
-    rbins = np.linspace(0, maxR, int(maxR//pho_step), endpoint=False)
+    rbins = np.linspace(0, maxR, int(maxR//pho_step), endpoint=False) ## do inverse sampling?
     abins = np.linspace(-np.pi,np.pi, int(2*np.pi//angle_step), endpoint=True)          
     hist, _, _ = np.histogram2d(np.array(polar_coords_A), np.array(polar_coords_P), bins=(abins, rbins))
     A, R = np.meshgrid(abins, rbins)
@@ -330,5 +342,80 @@ def extractMorphFeatures(n, df_summary=None):
     df_summary['trunk angle dispersion index'] = dendrites_dispersion_index(admin, admax, angles)
     return df_summary
 
+def getRandomNeuronName():
+    return "Neuron" + str(np.random.randint(1000000))
+
+def saveLinearProjectionDensity(neuronMorph, step_size,smoothBins,
+                smoothStandardDeviation, axes='xy', neuronName = None, verbose=False):
+        if neuronName == None:
+            ## generate a random name for the neuron
+            neuronName = getRandomNeuronName
+            print(f'Neuron name is not provided. Use {neuronName} as surrogate name')
+        neurite_types  = [NeuriteType.apical_dendrite, NeuriteType.basal_dendrite, NeuriteType.axon,NeuriteType.all,
+        'All dendrite']
+        import csv
+        for axis in axes:
+            for neurite_type in neurite_types :
+                if neurite_type !='All dendrite':
+                    neurite_type_name = neurite_type.name
+                    if neurite_type_name == 'all':
+                        neurite_type_name = 'all_neurite'                 
+                else:
+                    neurite_type_name = 'all_dendrite'
+                    neurite_type = [NeuriteType.apical_dendrite, NeuriteType.basal_dendrite]
+                density, bin_edges, centerVal, _ = sholl_single_axis(neuronMorph, step_size=step_size, axis=axis,
+                    neurite_type=neurite_type)
+                if density==[]:
+                    continue
+                density = smooth(density, window_len=smoothBins, std=smoothStandardDeviation,
+                window='gaussian')
+                ndiff = len(bin_edges) - len(density)
+                if ndiff > 0:
+                    bin_edges = bin_edges[ndiff:]
+                else:
+                    density = density[-ndiff:]
+                saveName = neuronName + '_linearProjection_' + axis + '_' + neurite_type_name + '.csv'
+                with open(saveName, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile, delimiter=',')
+                    writer.writerow(['bin_edges', 'density'])
+                    for idx, val in enumerate(density):
+                        writer.writerow([bin_edges[idx], val])
+                    if verbose:
+                        print(f'Save linear projection density to {saveName}')
+
+def save2DPlaneDensity(neuronMorph, step_size=5,  useFullRange=True, smoothBins=11,
+                smoothStandardDeviation=2, neuronName = None, verbose=False):
+    if neuronName == None:
+        ## generate a random name for the neuron
+        neuronName = getRandomNeuronName
+        print(f'Neuron name is not provided. Use {neuronName} as surrogate name')
+
+    for ntype in [NeuriteType.all, NeuriteType.axon, NeuriteType.basal_dendrite, NeuriteType.apical_dendrite, 'All dendrite']:                            
+        if ntype != 'All dendrite':    
+            ntypeName = ntype.name
+            if ntypeName == 'all':
+                ntypeName = 'all_neurite'
+            d2d, xedges, yedges, centerH, centerV = sholl_2D_density(neuronMorph, step_size=step_size,
+                neurite_type=ntype,useFullRange=useFullRange)
+        else:
+            ntypeName = 'all_dendrite'
+            d2d, xedges, yedges, centerH, centerV = sholl_2D_density(neuronMorph, step_size=step_size,
+                neurite_type=[NeuriteType.basal_dendrite, NeuriteType.apical_dendrite], useFullRange=useFullRange)
+
+
+        if len(d2d) > 0 :
+            d2d = smooth2D(d2d, smoothBins, smoothStandardDeviation)
+            xedges -=centerH
+            yedges -=centerV
+        else:
+            continue
+        saveName = neuronName + '_2DPlane_' + ntypeName + '.pickle'
+        with open(saveName, 'wb') as f:
+            pickle.dump([d2d, xedges, yedges], f)
+            if verbose:
+                print(f'Save 2D plane density to {saveName}')
+
+def save2DPolarDensity():
+    pass
 if __name__ == "__main__":
     pass
