@@ -19,7 +19,8 @@ from scipy.optimize import curve_fit
 import seaborn as sns
 sns.despine()
 sns.set_style("whitegrid")
-
+import yaml
+import dictdiffer
 from sklearn.metrics import _pairwise_distances_reduction
 from sklearn.metrics._pairwise_distances_reduction import (_datasets_pair, _middle_term_computer)
 from patchview.ephys import ephys_features as ephys_ft
@@ -40,24 +41,25 @@ from patchview.utilitis.AnalysisMethods import (
     cleanASCfile,
     smooth, smooth2D, padding_
 )
+import shapely._geos
 import neurom
+from morphopy.computation.feature_presentation import compute_morphometric_statistics
 from neurom.geom.transform import (translate, rotate)
 from patchview.utilitis import fitFuncs
 from patchview.utilitis.morphorFeatureExtrator import (
     getSomaStats, extractMorphFeatures, sholl_analysis,
      sholl_single_axis,sholl_2D_density, sholl_polar,
-     saveLinearProjectionDensity, save2DPlaneDensity, save2DPolarDensity)
+     saveLinearProjectionDensity, save2DPlaneDensity, save2DPolarDensity,
+     getMorphopyFeatures,getPersistanceBarcode)
 from patchview.utilitis.emfDraw import draw_morphorlogy_emf
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
-
 ## reading neuroluscida file
 import morphio
 from morphio import SomaType
 import neurom as morphor_nm
 from neurom import viewer as morphor_viewer
 from neurom.io.multiSomas import MultiSoma
-# from neurom.features.utilities import (getSomaStats, extractMorhporFeatures, sholl_analysis)
 from neurom.core.morphology import Morphology
 from neurom.core.types import NeuriteType
 import neo
@@ -461,7 +463,11 @@ class MainWindow(QtWidgets.QMainWindow):
         splitViewTab_morph.addParameterToLeftTab(
             "Analysis", AllMyPars.Morphor_analysis, self.morph_analysis_event
         )
-        
+        splitViewTab_morph.addTablesAtBottomRight(
+            ["Morphopy features"],
+            editable=False,
+            sortable=False,
+        )
         self.splitViewTab_morph = splitViewTab_morph
         self.visulization_view.addTab(splitViewTab_morph, splitViewTab_morph.title)
 
@@ -675,7 +681,7 @@ class MainWindow(QtWidgets.QMainWindow):
         TextLabel.setPos(pos[0], pos[1] - 10)
         return TextLabel
 
-    def updateTreeMorphView(self, fname):
+    def updateTreeMorphView(self, fname, redraw=False):
         # try:
         pv = self.splitViewTab_morph.getParTreePars("Analysis")
         neutriteColors = pv['Figure options'][1]['Neutrites color'][1]
@@ -688,14 +694,9 @@ class MainWindow(QtWidgets.QMainWindow):
             drawContour = True
         else:
             drawContour = False
-        if pv["Figure options"][1]["Ignore diameters"][0]:
-            realDia = True
-        else:
-            realDia= False
         self.neuronMorph =  None 
         neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
-        fig2D.set_size_inches(16,5, forward=True) ## A4 size
         fig2D.set_dpi(self.parameters["defaultDPI"])
         fig2D.clf()
         ax2D = fig2D.add_subplot(111)
@@ -785,13 +786,14 @@ class MainWindow(QtWidgets.QMainWindow):
             step_size=pv['Parameters'][1]['Bin size (um)'][0]
             smoothBins=pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
             smoothStandardDeviation=pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
+            DiameterScaling = pv["Parameters"][1]["Diameter scaling"][0]
             if rotateAngle!=0:
                 neurons = rotate(neurons, [0,0,1], rotateAngle*np.pi/180)
             self.neuronMorph = neurons
             morphor_viewer.draw(
-                neurons, mode="2d", realistic_diameters=realDia, fig=fig2D, ax=ax2D, alpha=1.0,
+                neurons, mode="2d", realistic_diameters=True, fig=fig2D, ax=ax2D, alpha=1.0,
                 contour_on=drawContour, contour_color='g', contour_linewidth=0.2,rotationContour=rotateAngle,
-                neutriteColors = self.NeutriteColors
+                neutriteColors = self.NeutriteColors, DiameterScaling = DiameterScaling
             )
             ax2D.axis("equal")  ## only works for 2D
             # ax2D.view_init(azim=0, elev=90)
@@ -800,17 +802,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.morphorFig_updater.add_ax(ax2D, ['linewidth'])
             # ax3D.set_zlim(zmin=max_scaling[0], zmax=max_scaling[1])
             print("Neuron morphology loaded!")
-            df_summary = {}
-            df_summary["ASC file"] = [fname]
-            df_summary = extractMorphFeatures(neurons, df_summary)
-            df_summary = {k:[df_summary[k]] for k in df_summary} ## weird requr. of pandas
-            df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
-            df_summary  = np.array(
-                df_summary.to_records(index=False)
-            )  ## format dataframe for using in QtTable widget
-            self.splitViewTab_morph.tables["Summary"].clear()
-            self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
-            self.splitViewTab_morph.tables["Summary"].show()
             ax_densityX = fig2D.add_subplot(gs0[0,1], sharey = ax2D)
             ax_densityX.cla()
             self.update_density(axis='y', step_size=step_size, ax = ax_densityX,
@@ -827,11 +818,87 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph.matplotViews["2D"].canvas.draw()
         fig2D.tight_layout()
         self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(0)
-        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
         # self.splitViewTab_morph.matplotViews['3D'].draw()
-
         self.splitViewTab_morph.show()
+        if not redraw:
+            df_summary = {}
+            df_summary["ASC file"] = [fname]
+            df_summary = extractMorphFeatures(neurons, df_summary)
+            df_summary = {k:[df_summary[k]] for k in df_summary} ## weird requr. of pandas
+            df_summary  = pd.DataFrame.from_dict(df_summary, orient="index").transpose()
+            df_summary  = np.array(
+                df_summary.to_records(index=False)
+            )  ## format dataframe for using in QtTable widget
+            self.splitViewTab_morph.tables["Summary"].clear()
+            self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
+            self.splitViewTab_morph.tables["Summary"].show()
+            self.update_mpfeatures()   
 
+    def update_mpfeatures(self):
+        try:
+            df_mpfeatures, N = getMorphopyFeatures(self.neuronMorph)
+            self.morphPy_N = N
+            df_mpfeatures.insert(loc=0, column="fileNmae", value=self.currentMorphTreeFile)
+            df_mpfeatures  = np.array(
+                    df_mpfeatures.to_records(index=False)
+                )  ## 
+            self.splitViewTab_morph.tables["Morphopy features"].clear()
+            self.splitViewTab_morph.tables["Morphopy features"].appendData(df_mpfeatures)
+            self.splitViewTab_morph.tables["Morphopy features"].show()
+        except Exception as e:
+            print(e)
+
+    def update_morphPyFig(self):
+        '''https://github.com/berenslab/MorphoPy/blob/master/notebooks/MORPHOPY%20Tutorial.ipynb'''
+        if self.morphPy_N is None:
+            self.update_mpfeatures()
+
+        statistics = ['branch_order', 'strahler_order', 
+                    'branch_angle', 'path_angle', 'root_angle', 
+                    'thickness', 'segment_length', 'path_length', 'radial_dist']
+
+        hist_widths = [2,.2, 10, 10, 10, .05, 20, 80, 30]
+        limits = [35, 5, 180, 180, 180, 0.5, 600, 2500, 900]
+        N = self.morphPy_N
+        Axon = N.get_axonal_tree()
+        Dendrites = N.get_dendritic_tree()
+        A = Axon.get_topological_minor()
+        D = Dendrites.get_topological_minor()
+        # fig = self.morphAnaFigs_matplotView.getFigure()
+        fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 1D historgram",
+        size=(15,10)).getFigure()
+        fig.clf()
+        k = 1
+        for stat, lim, w in zip(statistics,limits, hist_widths):
+            ax = fig.add_subplot(3,3,k)
+            for Trees, c in [[(Axon, A), 'darkgreen'], [(Dendrites, D), 'darkgrey']]:
+                if stat in ['segment_length', 'path_length', 'radial_dist']:
+                    bins = np.linspace(0,lim, 20)
+                else:
+                    bins= np.linspace(0,lim, 10)
+                if stat in ['branch_order', 'strahler_order', 'root_angle']:
+                    dist, edges = Trees[1].get_histogram(stat, bins=bins)
+                else:    
+                    dist, edges = Trees[0].get_histogram(stat, bins=bins) # you can pass options to the histogram method
+
+                
+                ax.bar(edges[1:], dist, width=w, color=c, alpha=.7)
+                sns.despine()
+                xlabel = stat.replace("_", " ").capitalize()
+                if xlabel.find('length') > -1 or xlabel.find('dist') > -1 or xlabel == 'Thickness':
+                    xlabel += ' (um)'
+                elif xlabel.find('angle') > -1:
+                    xlabel += ' (deg)'
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel('Frequency')
+
+            k+=1
+
+        ax.legend(['Axon', 'Dendrites'])
+        MATPLT.suptitle('1-D morphometric distributions', weight='bold')
+        fig.tight_layout()
+        fig.canvas.draw()
+    
     def on_Morph_lims_change(self, events):
         '''update figure when resized
         '''
@@ -855,7 +922,8 @@ class MainWindow(QtWidgets.QMainWindow):
     neurite_type = NeuriteType.all, step_size=5, axiOps=None, showgrid=True, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
-                    fig = self.morphAnaFigs_matplotView.getFigure()
+                    # fig = self.morphAnaFigs_matplotView.getFigure()
+                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 2D Polar density").getFigure()
                     fig.clf()
                     ax = fig.add_subplot(111,projection="polar")
                     ax.cla()
@@ -874,20 +942,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 fig.colorbar(pc, orientation='vertical')
                 if addTitle:
                     ax.set(title= "XY plane density")
-                self.morphAnaFigs_matplotView.figure.subplots_adjust(top=0.861,bottom=0.02,left=0.0,right=0.7,hspace=0.2,wspace=0.0)
-                self.morphAnaFigs_matplotView.draw()
-                self.morphAnaFigs_matplotView.canvas.draw()
+                # self.morphAnaFigs_matplotView.figure.subplots_adjust(top=0.861,bottom=0.02,left=0.0,right=0.7,hspace=0.2,wspace=0.0)
+                # self.morphAnaFigs_matplotView.draw()
+                # self.morphAnaFigs_matplotView.canvas.draw()
                 fig.tight_layout()
             else:
                 print('Not a morphological object for sholl analysis')
-            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+
             
     def update_2D_density(self, ax=None, addTitle =True, neurite_type = NeuriteType.all,
      step_size=5,  useFullRange=True, showColorbar=False, showAxisValues=False,smoothBins=11,
                 smoothStandardDeviation=2, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
-                    fig = self.morphAnaFigs_matplotView.getFigure()
+                    # fig = self.morphAnaFigs_matplotView.getFigure()
+                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 2D density").getFigure()
                     fig.clf()
                 axes = []
                 images = []
@@ -938,19 +1007,20 @@ class MainWindow(QtWidgets.QMainWindow):
                     axes[0].set_ylabel('Y (um)')
 
                 fig.tight_layout()
-                self.morphAnaFigs_matplotView.draw()
-                self.morphAnaFigs_matplotView.canvas.draw()
+                # self.morphAnaFigs_matplotView.draw()
+                # self.morphAnaFigs_matplotView.canvas.draw()
 
             else:
                 print('Not a morphological object for sholl analysis')
-            self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+            # self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
     def update_density(self, axis='y', ax=None,step_size=1,
      flipAxes=False, addTitle =True, neurite_type = NeuriteType.all,
      smoothBins=11,smoothStandardDeviation=2, addAllNeuritesPlot=True):
         if self.neuronMorph is not None:
             if ax is None:
-                fig = self.morphAnaFigs_matplotView.getFigure()
+                # fig = self.morphAnaFigs_matplotView.getFigure()
+                fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " y axis density").getFigure()
                 fig.clf()
                 ax = fig.add_subplot(111)
                 ax.cla()
@@ -967,11 +1037,11 @@ class MainWindow(QtWidgets.QMainWindow):
             for ntype in neurite_type :
                 c = self.NeutriteColors[ntype]
                 if ntype == NeuriteType.all:
-                    alpha = 0.6
+                    alpha = 0.5
                 elif ntype == "All dendrite":
                     ntype = [NeuriteType.apical_dendrite, NeuriteType.basal_dendrite]
                 else:
-                    alpha = 0.8
+                    alpha = 0.7
                 density, bin_edges, centerVal, _ = sholl_single_axis(self.neuronMorph, step_size=step_size, axis=axis,
                  neurite_type=ntype)
                 if density==[]:
@@ -995,18 +1065,19 @@ class MainWindow(QtWidgets.QMainWindow):
             ax.set(xlabel=xlabel, ylabel=ylabel)
             if addTitle:
                 ax.set(title= axis+" density")
-            self.morphAnaFigs_matplotView.draw()
-            self.morphAnaFigs_matplotView.canvas.draw()  
+            # self.morphAnaFigs_matplotView.draw()
+            # self.morphAnaFigs_matplotView.canvas.draw()  
             if fig != '':
                 fig.tight_layout()
         else:
             print('Not a morphological object for sholl analysis')
-        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+        # self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
 
     def update_sholl(self, step_size=1, smoothBins=11,smoothStandardDeviation=2):
         if self.neuronMorph is not None:        
-            fig = self.morphAnaFigs_matplotView.getFigure()
+            # fig = self.morphAnaFigs_matplotView.getFigure()
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " Sholl intercetions").getFigure()
             fig.clf()
             ax = fig.add_subplot(111)
             ax.cla()
@@ -1026,12 +1097,12 @@ class MainWindow(QtWidgets.QMainWindow):
             ax.spines["right"].set_visible(False)
             ax.spines["top"].set_visible(False)
             fig.tight_layout()
-            self.morphAnaFigs_matplotView.draw()
-            self.morphAnaFigs_matplotView.canvas.draw()
+            # self.morphAnaFigs_matplotView.draw()
+            # self.morphAnaFigs_matplotView.canvas.draw()
 
         else:
             print('Not a morphological object for sholl analysis')
-        self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
+        # self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
 
     def updateSliceView(self):
         if hasattr(self, "slice_viewROIs"):
@@ -1213,15 +1284,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def prepareTree(self, fname):
         self.visulization_view.setCurrentIndex(5)
         self.currentMorphTreeFile = fname
-        if glob.glob(fname[:-4] + "_mod.ASC") == []:
+        if fname[-3:] in ["asc","ASC"] and glob.glob(fname[:-4] + "_mod.ASC") == []:
             fname = cleanASCfile(fname)  ## to clean not-want sections
         self.splitViewTab_morph.matplotViews["2D"].getFigure().clf()
         self.morphAnaFigs_matplotView.getFigure().clf()
         self.updateTreeMorphView(fname)
-        print('morphfile', fname, fname[-8:])
         if fname[-8:] == "_mod.ASC":
             os.remove(fname)
-
 
     def importSlice_clicked(self):
         self.updateSliceView()
@@ -3385,11 +3454,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def loadUserParamters(self, user):
         confilePath  = os.path.join(self.useConfigDir,"patchview.yaml")
-        if not os.path.exists(self.useConfigDir):
+        if not os.path.exists(self.useConfigDir): ## create the config directory if not exist
             import shutil 
             os.makedirs(self.useConfigDir)
             DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")    
             shutil.copy(DATA_PATH, confilePath)
+        else: ## compare differnce between the default config file and the user config file
+            print('Detect user config file. Compare with default config file.')
+
+            DATA_PATH = os.path.join(patchview_dir, "Data", "patchview.yaml")
+            with open(DATA_PATH, "r") as f:
+                default_pars = yaml.load(f, Loader=yaml.FullLoader)
+            with open(confilePath, "r") as f:
+                user_pars = yaml.load(f, Loader=yaml.FullLoader)
+            results = dictdiffer.diff(user_pars,default_pars)
+            patched = dictdiffer.patch(results, user_pars, action_flags='a')
+            with open(confilePath, "w") as f:
+                yaml.dump(patched, f,sort_keys=False)
+            print('User config file updated.')
 
         pars = loadYAML(confilePath)
         parameters = {}
@@ -4411,9 +4493,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.splitViewTab_FP.tables["Cell features"],
                 ephObj.title,
             )
-
-
-        
+   
             self.updateEphyTable(sw, self.splitViewTab_FP.tables["Sweep features"], ephObj.title)
 
             print(cellName, "done!")
@@ -7021,7 +7101,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return x, y, D
 
     def measureDist2Pia(self):
-        if self.pia is not None:
+        if hasattr(self, 'pia') and self.pia is not None:
             df = pd.DataFrame(self.pia[:, :2], columns=["x", "y"]).sort_values(
                 by="x", inplace=False
             )
@@ -7097,11 +7177,11 @@ class MainWindow(QtWidgets.QMainWindow):
             childName = param.name()
             if childName == "Figure aesthetics":
                 sns.set_style(seabornStyle)
-            if childName in [ "Rotate tree (degree)", "Draw contour", "Ignore diameters", "Scale bar length"]:
+            if childName in [ "Rotate tree (degree)", "Draw contour",  "Scale bar length"]:
                 fname = cleanASCfile(
                     self.currentMorphTreeFile
                 )  ## to clean not-wanted sections
-                self.updateTreeMorphView(fname)
+                self.updateTreeMorphView(fname, redraw=True)
                 if fname[-8:] == "_mod.ASC":
                     os.remove(fname)
             if childName in ["Basal dendrite", "Apical dendrite", "Axon", "Soma"]:
@@ -7110,7 +7190,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     if idx == len(colors):
                         break
                     self.NeutriteColors[k] = colors[idx]
-                self.updateTreeMorphView(self.currentMorphTreeFile)
+                self.updateTreeMorphView(self.currentMorphTreeFile, redraw=True)
             if childName in ["Rotate tree (degree)", "Bin size (um)", "Gaussian window size (num. bins)",
              "Std of Gaussian kernel (num. bins)", "Angle bin (degree)", "Use full range for density plot",
              "Show color bar for density plot", "Show axis for density plot","Figure aesthetics", "Color map",
@@ -7138,8 +7218,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size,
                  axiOps = customRange_polarAxisOptions, showgrid=showgrid, cmap = cmap)
                 self.currentAnMorphView = childName
+            if childName == '1D histograms':
+                self.update_morphPyFig()
             if childName == "Update cell names":
                 self.updateInterCellDistance()
+            if childName in ['Distance function', "Compute barcode"]:
+                distFunc = pv['Measurement'][1]["Persistent barcode"][1]['Distance function'][0]
+                self.drawBarcode(distFunc)
             elif childName == "Distance to Pia":
                 self.measureDist2Pia()
             elif childName == "Export High resolution figure":
@@ -7149,7 +7234,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # figsize = pv["Save options"][1]["Size"][0]
                 # fig = self.splitViewTab_morph.matplotViews["2D"].getFigure()
                 self.saveHighResFigure(dpi, format)
-            elif childName == 'Save to csv':
+            elif childName == 'Save to disk':
                 linearProjection = pv['Export Morphology density'][1]['linear projections'][0]
                 xyPlane = pv['Export Morphology density'][1]['xy cartesian'][0]
                 xyPoloar = pv['Export Morphology density'][1]['xy polar'][0]
@@ -7168,13 +7253,43 @@ class MainWindow(QtWidgets.QMainWindow):
                     savedResults+="2D polar density\n "
                 self.showdialog(f"{self.currentMorphTreeFile[:-4]} saved!", savedResults)
 
+    def drawBarcode(self, distanceFunc):
+        if self.morphPy_N is not None:
+            df = getPersistanceBarcode(self.morphPy_N , distanceFunc)
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " persistent diagrams",
+            size=(15,10)).getFigure()
+            fig.clf()
+            ax1 = fig.add_subplot(121)
+            ax1.set_title("Persistent barcode")
+            ax1.set_xlabel("Life time")
+            ax1.set_ylabel("Features")
+            for i in range(len(df)):
+                ax1.plot([df['birth'][i], df['death'][i]], [i, i], color='k', lw=1)
+
+            ax2 = fig.add_subplot(122)
+            ax2.set_title("Persistent diagram")
+            ax2.set_xlabel("Birth "+ distanceFunc)
+            ax2.set_ylabel("Death "+ distanceFunc)
+            ax2.scatter(df['birth'], df['death'], s=10)
+            minDf = min(df['birth'].min(), df['death'].min())
+            maxDf = max(df['birth'].max(), df['death'].max())
+            ax2.plot([minDf, maxDf], [minDf, maxDf], color='k', linestyle='dashed', linewidth=1)
+            fig.tight_layout()
+
+    def makeNewMatPlotWindow(self, title='figure',size=(8,6)):
+        if not hasattr(self, 'MatPlotWindows'):
+            self.MatPlotWindows = []
+        self.MatPlotWindows.append(MatplotView(size=size, title=title))
+        self.MatPlotWindows[-1].show()
+        return self.MatPlotWindows[-1]
+
     def saveHighResFigure(self,dpi, format):  
         fileName = self.currentMorphTreeFile[:-4]
         # for idx, ax in enumerate(fig.axes):
         #     if idx >0:
         #         fig.delaxes(ax)
         pv = self.splitViewTab_morph.getParTreePars("Analysis")
-        isRadius = pv["Parameters"][1]["Is Radius"][0]
+        DiameterScaling = pv["Parameters"][1]["Diameter scaling"][0]
         rotateAngle = pv["Parameters"][1]["Rotate tree (degree)"][0]
         step_size=pv['Parameters'][1]['Bin size (um)'][0]
         smoothBins=pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
@@ -7183,17 +7298,21 @@ class MainWindow(QtWidgets.QMainWindow):
         axisVisible = pv["Export Morphology"][1]["Axis visible"][0]
         if format!="emf":
             ## recreate a new figure
-            fig, ax2D = MATPLT.subplots()
-            fig.set_size_inches(11.7, 8.3, forward=True)
+            matWin = MatplotView(size=(8,6))
+            fig = matWin.getFigure()
+            ax2D = fig.add_subplot(111)
             fig.set_dpi(dpi)
-            fig.tight_layout()
+            ## Matplotlib figures use Points per inch (ppi) of 72
+            ## so we need to scale the diameter by the dpi
             morphor_viewer.draw(
                 self.neuronMorph, mode="2d", realistic_diameters=True, fig=fig, ax=ax2D, alpha=1.0,
-                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,rotationContour=rotateAngle
-            )
+                contour_on=drawContour, contour_color='g', contour_linewidth=0.2,rotationContour=rotateAngle,
+                neutriteColors = self.NeutriteColors, DiameterScaling=DiameterScaling*180/dpi
+            ) ##  need to scale the diameter by the dpi?
             if not axisVisible:
                 ax2D.axis('off') ## turn off axis
                 ax2D.grid(False) ## turn off grid
+            # MATPLT.show()
             fig.savefig(
                 fileName+ "." + format,
                 dpi=dpi,
@@ -7206,11 +7325,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 transparent=True,
                 backend=None,
             )
-            # fig2.set_dpi(self.parameters["defaultDPI"])
-            MATPLT.close(fig)
         else: 
             draw_morphorlogy_emf(self.neuronMorph, fileName, unit='mm', rotationContour=rotateAngle,
-            isRadius=isRadius, neuriteColors=self.NeutriteColors, dpi=dpi)
+            DiameterScaling=DiameterScaling, neuriteColors=self.NeutriteColors, dpi=dpi)
         self.showdialog(f"{fileName} saved!")
 
     def spike_detection_event(self, param, changes):

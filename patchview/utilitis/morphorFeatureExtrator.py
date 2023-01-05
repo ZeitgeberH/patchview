@@ -12,6 +12,12 @@ from patchview.utilitis.AnalysisMethods import (
     smooth, smooth2D, padding_
 )
 import pickle
+from morphopy.computation import file_manager as fm
+from morphopy.computation.feature_presentation import compute_morphometric_statistics
+from morphopy.computation.persistence_functions import path_length, radial_distance, height, branch_order
+from morphopy.computation.feature_presentation import get_persistence
+
+
 def getSomaStats(n):
     ''' Basic statistics for soma
     '''
@@ -300,15 +306,26 @@ def extractMorphFeatures(n, df_summary=None):
     df_summary["center Z"] = soma_center[2]
     cellArea, cellPerimeter = getPerimeter_Area(n.soma.points)
     cirIndex, max_pairwise_distance, shapefactor, asratio = getShapeFactors(n.soma.points)
-    df_summary["soma average radius"] = soma_avgRadius
-    df_summary["soma maximal radius"] = np.max(soma_radius)
-    df_summary["soma minimal radius"] = np.min(soma_radius)
-    df_summary['soma max_pairwise_dist'] = max_pairwise_distance
-    df_summary["soma perimeter"] = cellPerimeter
-    df_summary["soma area"] = cellArea
-    df_summary['soma circularity index'] = cirIndex
-    df_summary['soma shape factor'] = shapefactor
-    df_summary['soma aspect_ratio'] = asratio
+    if len(n.soma.points) > 0:
+        df_summary["soma average radius"] = soma_avgRadius
+        df_summary["soma maximal radius"] = np.max(soma_radius)
+        df_summary["soma minimal radius"] = np.min(soma_radius)
+        df_summary['soma max_pairwise_dist'] = max_pairwise_distance
+        df_summary["soma perimeter"] = cellPerimeter
+        df_summary["soma area"] = cellArea
+        df_summary['soma circularity index'] = cirIndex
+        df_summary['soma shape factor'] = shapefactor
+        df_summary['soma aspect_ratio'] = asratio
+    else:
+        df_summary["soma average radius"] = np.nan
+        df_summary["soma maximal radius"] = np.nan
+        df_summary["soma minimal radius"] = np.nan
+        df_summary['soma max_pairwise_dist'] = np.nan
+        df_summary["soma perimeter"] = np.nan
+        df_summary["soma area"] = np.nan
+        df_summary['soma circularity index'] = np.nan
+        df_summary['soma shape factor'] = np.nan
+        df_summary['soma aspect_ratio'] = np.nan
     df_summary['cell max_radial_dist'] = features.morphology.max_radial_distance(n)
     df_summary['total number of neurites'] = len(n.neurites)
     if len(n.neurites) > 0:
@@ -417,5 +434,24 @@ def save2DPlaneDensity(neuronMorph, step_size=5,  useFullRange=True, smoothBins=
 
 def save2DPolarDensity():
     pass
+
+def getMorphopyFeatures(tree):
+    '''https://github.com/berenslab/MorphoPy/blob/master/notebooks/MORPHOPY%20Tutorial.ipynb'''
+    tree.remove_unifurcations()
+    tree.write('temp.swc')
+    N = fm.load_swc_file('temp.swc')
+    morph_wide = compute_morphometric_statistics(N)
+    return morph_wide, N
+
+def getPersistanceBarcode(N, f):
+    '''N is the morphopy neuron object'''
+    filter_funcs = {
+    'path_length':path_length,
+    'radial_distance': radial_distance,
+    'height': height,
+    'branch_order': branch_order
+    }
+    return get_persistence(N.get_topological_minor(), f=filter_funcs[f])
+
 if __name__ == "__main__":
     pass

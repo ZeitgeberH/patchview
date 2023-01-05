@@ -946,7 +946,8 @@ Morphor_analysis = [
                 "default": 50,
                 "siPrefix": False,
             },
-            {"name": "Is Radius", "type": "bool", "value": True},
+            {"name": "Diameter scaling", "type": "float", "value": 2.0,
+                "limits": (0.5, 4.0), "step": 0.5, "default": 2.0, "siPrefix": False},
             {
                 "name": "Rotate tree (degree)",
                 "type": "float",
@@ -1008,19 +1009,18 @@ Morphor_analysis = [
             "name": "Neutrites color",
             "type": "group",
             "children": [
-            {"name": "Basal dendrite", "type": "color", "value": "b"},
+            {"name": "Basal dendrite", "type": "color", "value": "g"},
             {"name": "Apical dendrite", "type": "color", "value": "m"},
             {"name": "All dendrites", "type": "color", "value": "c"},
-            {"name": "Axon", "type": "color", "value": "r"},
-            {"name": "All neurites", "type": "color", "value": "gray"},
-            {"name": "Soma", "type": "color", "value": "k"},
+            {"name": "Axon", "type": "color", "value": "gray"},
+            {"name": "All neurites", "type": "color", "value": "k"},
+            {"name": "Soma", "type": "color", "value": "r"},
             ],
             },
             {"name": "Use full range for density plot", "type": "bool", "value": True},
             {"name": "Show color bar for density plot", "type": "bool", "value": True},
             {"name": "Show grid", "type": "bool", "value": True},
             {"name": "Show axis for density plot", "type": "bool", "value": True},
-            {"name": "Ignore diameters", "type": "bool", "value": False},
             {"name": "Draw contour", "type": "bool", "value": True},
             {"name": "Color map", "type": "list", "values":["rocket","hot","copper","gnuplot","inferno","magma"], "value": "rocket"},
             {"name": "Custom axis range", "type": "group", 'expanded':False, "children": 
@@ -1039,6 +1039,7 @@ Morphor_analysis = [
                 },
             ],
             },
+            {"name": "Close all floating windows", "type": "action"},
         ]
     },
     {
@@ -1050,8 +1051,15 @@ Morphor_analysis = [
             {"name": "Y axis density", "type": "action"},
             {"name": "XY plane density", "type": "action"},
             {"name": "XY polar density", "type": "action"},
+            {"name": "1D histograms", "type": "action"},
             {"name": "Distance to Pia", "type": "action"},
-        ],
+            {"name": "Persistent barcode", "type": "group",
+             "children": [
+                {"name": "Distance function", "type": "list",
+                 "values": ['radial_distance','height','path_length','branch_order'], 'value': 'radial_distance'},
+                {"name": "Compute barcode", "type": "action"},
+                ]},
+        ]
     },
     {
         "name": "Export Morphology",
@@ -1069,8 +1077,8 @@ Morphor_analysis = [
             {
                 "name": "Format",
                 "type": "list",
-                "values": ["svg","emf","pdf", "eps", "png"],
-                "value": "svg",
+                "values": ["emf", "svg","pdf", "eps", "png"],
+                "value": "emf",
             },
             {"name": "Axis visible", "type": "bool", "value": False},
             {"name": "Export High resolution figure", "type": "action"},
@@ -1083,32 +1091,7 @@ Morphor_analysis = [
             {"name": "linear projections", "type": "bool", "value": True},
             {"name": "xy cartesian", "type": "bool", "value": True},
             {"name": "xy polar", "type": "bool", "value": False, "enabled": False},
-            {"name": "Save to csv", "type": "action"},
-        ],
-    },
-]
-
-Morphor_legend = [
-    {
-        "name": "Color scheme",
-        "type": "group",
-        "children": [
-            {"name": "Basal dendtrite", "type": "color", "value": "b"},
-            {"name": "Apical dendtrite", "type": "color", "value": "m"},
-            {"name": "Axon", "type": "color", "value": "r"},
-            {"name": "Soma", "type": "color", "value": "k"},
-        ],
-    },
-    {
-        "name": "Help for options",
-        "type": "group",
-        "children": [
-            {
-                "name": "ignore diamters",
-                "type": "str",
-                "enabled": False,
-                "value": "When set True, will render each section's diamter accordingly",
-            },
+            {"name": "Save to disk", "type": "action"},
         ],
     },
 ]

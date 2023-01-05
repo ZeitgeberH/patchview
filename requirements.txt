@@ -1,3 +1,4 @@
+morphopy
 colorcet
 appdirs
 Pillow
@@ -16,7 +17,7 @@ pylru==1.2.1
 h5py==3.7.0
 joblib
 future==0.18.2
-pyYAML==6.0
+pyYAML
 python-dateutil
 seaborn
 pytz
@@ -26,6 +27,7 @@ matplotlib
 pycairo
 scikit-image
 NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
+dictdiffer @ git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer
 morphio
 scikit-learn
 sklearn

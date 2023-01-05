@@ -24,7 +24,8 @@ by Python communities. This includes:
 - heka_reader_ for the original HEKA PatchMaster parser in Python
 
 - IPFX_  a Python package for computing intrinsic cell features from electrophysiology data
-- NeuroM_ for parsing Neurolucida file (.ASC)
+- NeuroM_ for parsing Neurolucida file and morphology analysis
+- morphopy_ for addtional morphology analysis
 - pynwb_ python interface with NWB format
 - pyinstaller_ for packaging
 
@@ -38,3 +39,4 @@ by Python communities. This includes:
 .. _IPFX: https://github.com/AllenInstitute/ipfx
 .. _NeuroM: https://github.com/BlueBrain/NeuroM/
 .. _pynwb: https://github.com/NeurodataWithoutBorders/pynwb
+.. _morphopy: https://github.com/berenslab/MorphoPy

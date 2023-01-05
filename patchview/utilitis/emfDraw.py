@@ -29,7 +29,7 @@ def _plane2col(plane):
     return (getattr(COLS, plane[0].capitalize()),
             getattr(COLS, plane[1].capitalize()), )
 
-def _get_linewidth(tree, linewidth, diameter_scale, isRadius = False):
+def _get_linewidth(tree, linewidth, diameter_scale, DiameterScaling=2.0):
     """Calculate the desired linewidth based on tree contents.
 
     If diameter_scale exists, it is used to scale the diameter of each of the segments
@@ -37,11 +37,7 @@ def _get_linewidth(tree, linewidth, diameter_scale, isRadius = False):
     If diameter_scale is None, the linewidth is used.
     """
     if diameter_scale is not None and tree:
-        if isRadius:
-            scaling = 2.0
-        else:
-            scaling = 1.0
-        linewidth = [scaling * segment_radius(s) * diameter_scale
+        linewidth = [DiameterScaling * segment_radius(s) * diameter_scale
                      for s in iter_segments(tree)]
     return linewidth
 
@@ -56,19 +52,26 @@ def emf_soma(emf, soma,plane='xy', scalingFactor = 100):
     points = np.vstack([soma.points[:,plane0].ravel(),
                         soma.points[:,plane1].ravel()])
     points = points.T
-    hull = ConvexHull(points)
-    pt_list = (np.array(points[hull.vertices])*scalingFactor).astype('int32')
-    pt_list[:,1] = -pt_list[:,1]
-    somaColor = TREE_COLOR.get(NeuriteType.soma, (0x00,0x00,0x00))
-    pen = emf.CreatePen(pyemf.PS_SOLID, 1,somaColor)
-    emf.SelectObject(pen)
-    brush=emf.CreateSolidBrush(somaColor)
-    emf.SelectObject(brush)
-    emf.Polygon(pt_list)
+    if points.shape[0] >0:
+        try:
+            hull = ConvexHull(points)        
+            pt_list = (np.array(points[hull.vertices])*scalingFactor).astype('int32')
+            penWidth = 1
+        except Exception as e:
+            pt_list = np.array(points*scalingFactor).astype('int32')
+            penWidth = int(soma.radius*scalingFactor)
+            print('Error in ConvexHull', penWidth)
+        pt_list[:,1] = -pt_list[:,1]
+        somaColor = TREE_COLOR.get(NeuriteType.soma, (0x00,0x00,0x00))
+        pen = emf.CreatePen(pyemf.PS_SOLID, penWidth,somaColor)
+        emf.SelectObject(pen)
+        brush=emf.CreateSolidBrush(somaColor)
+        emf.SelectObject(brush)
+        emf.Polygon(pt_list)
 
 def emf_tree(emf, tree,plane='xy',
               diameter_scale=1.0, linewidth=1.2,
-              color=None, alpha=1.0,scalingFactor = 100, enhanceBifurcationPlotting = True, isRadius = False):
+              color=None, alpha=1.0,scalingFactor = 100, enhanceBifurcationPlotting = True, DiameterScaling = 2.0):
 
     plane0, plane1 = _plane2col(plane)
     ## the third element in the list is a boolean indicating if the section is a bifurcation
@@ -84,8 +87,8 @@ def emf_tree(emf, tree,plane='xy',
     linewidth = _get_linewidth(
         tree,
         diameter_scale=diameter_scale,
-        linewidth=linewidth,isRadius = isRadius
-    )
+        linewidth=linewidth, DiameterScaling = DiameterScaling)
+
     segs = (np.array(segs)*scalingFactor).astype('int32')
     segs[:,:,1] = -segs[:,:,1]       
     color = TREE_COLOR.get(tree.type, (0x00,0x00,0x00))
@@ -135,7 +138,7 @@ def emf_ScaleBar(emf, scalebar, scalingFactor = 100, Yoffset = 200):
 def emf_morph(emf, morph,
                neurite_type=NeuriteType.all,
                plane='xy', scalingFactor=100, contourOn=True,rotationContour=0, scalebar=100,
-               isRadius = False):
+               DiameterScaling = 2.0):
     """Plots a 2D figure of the morphology, that contains a soma and the neurites.
         scalebar is in um
     """   
@@ -145,7 +148,7 @@ def emf_morph(emf, morph,
         emf_contour(emf, morph, scalingFactor,rotationContour=rotationContour)
     emf_soma(emf, morph.soma, plane=plane,  scalingFactor=scalingFactor)
     for neurite in iter_neurites(morph, filt=tree_type_checker(neurite_type)):
-        emf_tree(emf, neurite,  plane=plane, scalingFactor=scalingFactor, isRadius = isRadius)
+        emf_tree(emf, neurite,  plane=plane, scalingFactor=scalingFactor, DiameterScaling = DiameterScaling)
 
 def emf_contour(emf, morph,scalingFactor=100,rotationContour=0, contour_linewidth=100):
     contour_color = TREE_COLOR.get(NeuriteType.undefined, (0x00,0x00,0x00))
@@ -193,7 +196,7 @@ def rotate_contour(contour, angle):
     return np.dot(contour, rotation_matrix)
 
 def draw_morphorlogy_emf(morph,saveName, contourOn=True,rotationContour=0, width=210, height=297, dpi=300,unit='mm',
-scalebar=100, isRadius = False, isSave = True, neuriteColors = None): 
+scalebar=100, DiameterScaling = 2.0, isSave = True, neuriteColors = None): 
     '''
     scalebar is in um
     isRadius = True: the COLS.R is the radius of the neurite; False: the COLS.R is the diameter of the neurite
@@ -206,7 +209,7 @@ scalebar=100, isRadius = False, isSave = True, neuriteColors = None):
     emf=pyemf.EMF(width,height,dpi,unit)
     emf.SetBkMode(pyemf.TRANSPARENT)
     emf_morph(emf, morph,plane='xy',scalingFactor=100, contourOn=contourOn, 
-    scalebar=scalebar,rotationContour=rotationContour,isRadius = isRadius)
+    scalebar=scalebar,rotationContour=rotationContour,DiameterScaling = DiameterScaling)
     if isSave:
         ret=emf.save(saveName+".emf")
         print(f"{saveName} save returns {ret}")

@@ -32,7 +32,7 @@ class FileModel(pg.QtWidgets.QFileSystemModel):
         )
 
         # filter out non dats and disable showing
-        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC"])
+        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC","*.swc"])
         self.setNameFilterDisables(False)
 
         # set root
@@ -228,7 +228,7 @@ class FileView(pg.QtWidgets.QTreeView):
         #        os.chdir(self.frame.root)
         # check extension
         _, ext = os.path.splitext(file_path)
-        if ext in ['.asc','.ASC']:
+        if ext in ['.asc','.ASC', '.swc']:
             self.frame.prepareTree(file_path)
         else:
             self.frame.clearAllTrees()
@@ -966,6 +966,7 @@ class MatplotView(MatplotlibWidget.MatplotlibWidget):
         super(MatplotView, self).__init__(size=size, dpi=dpi)
         self.setParent(parent)
         self.figure = self.getFigure()
+        self.setWindowTitle(title)
         self.clf()
 
     def subplots(self, nrow, ncol):
