@@ -3,10 +3,12 @@ Patchviewer by M.H.
 """
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem
+from PyQt5.QtWidgets import QSplitter
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from patchview.utilitis import AllMyParsHere as AllMyPars
+from patchview.utilitis.pyqtgraph_helpers import * # helper functions for pyqtgraph
 import sys
 import os
 import numpy as np
@@ -47,10 +49,12 @@ from morphopy.computation.feature_presentation import compute_morphometric_stati
 from neurom.geom.transform import (translate, rotate)
 from patchview.utilitis import fitFuncs
 from patchview.utilitis.morphorFeatureExtrator import (
-    getSomaStats, extractMorphFeatures, sholl_analysis,
-     sholl_single_axis,sholl_2D_density, sholl_polar,
+    getSomaStats, extractMorphFeatures, sholl_analysis,resampleNeurite,
+     sholl_single_axis,sholl_2D_density, sholl_polar,resamplingPathPoints,
      saveLinearProjectionDensity, save2DPlaneDensity, save2DPolarDensity,
-     getMorphopyFeatures,getPersistanceBarcode)
+     getMorphopyFeatures,getPersistanceBarcode,getApicalDendriteTortuosity,
+     longestPathLeafNode,termPathLength,getApicalDendriteDirectionConsistency)
+from neurom.view.matplotlib_impl import plot_dendrogram
 from patchview.utilitis.emfDraw import draw_morphorlogy_emf
 from patchview.utilitis.patchviewObjects import *
 import networkx as nx
@@ -71,12 +75,11 @@ matplotlib.use("svg") ## for svg export
 matplotlib.use("pdf") ## for pdf export
 import matplotlib.pyplot as MATPLT
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib  import colors as MATPLTcolors
 from matplotlib.collections import LineCollection, PatchCollection
 from sklearn import linear_model
 from matplotlib import image as ReadImage
-from patchview.utilitis.PVdat2NWB import dat2NWB
-import pynwb
-from hdmf.spec import NamespaceCatalog
+from hdmf.spec import NamespaceCatalog ## pyinstaller need hooks
 from hdmf.utils import docval, getargs, popargs, call_docval_func, get_docval
 from hdmf.backends.io import HDMFIO
 from hdmf.backends.hdf5 import HDF5IO as _HDF5IO
@@ -86,7 +89,13 @@ import hdmf.common
 from hdmf.spec import NamespaceCatalog  # noqa: E402
 from hdmf.utils import docval, getargs, call_docval_func, get_docval, fmt_docval_args  # noqa: E402
 from hdmf.build import BuildManager, TypeMap  # noqa: E402
+import pynwb
+from patchview.utilitis.PVdat2NWB import dat2NWB
+from patchview.utilitis.pvEphy import *
+from patchview.utilitis.dandi2pvNWB import dandiNWB
+from patchview.utilitis.pvNDX_class import PatchviewSweepGroup, PatchviewSweep
 warnings.filterwarnings("ignore")
+import gc as GCollector
 from appdirs import *
 
 patchview_dir, this_filename = os.path.split(__file__)
@@ -112,6 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         #        self.resize(1200, 800)
         self.showMaximized()
+        # self.app.aboutToQuit.connect(self.reset)
         
 
 
@@ -129,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.hideSpikePanels()
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.MouseMode = pg.ViewBox.RectMode
+        self.MouseMode = pg.ViewBox.PanMode
         self.setCentralWidget(self.mainFrame)
         self.plotItemList = []  ## collect all plot handles
         self.currentAnMorphView= []
@@ -449,7 +459,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.event_Vsplitter.setStretchFactor(1, 3)
 
         splitViewTab_morph = SplitView("Morphology", "Trees")
-        splitViewTab_morph.addMatPlotviewAtTop(["2D"], size=(100, 100), dpi=1000)
+        splitViewTab_morph.addMatPlotviewAtTop(["2D"], size=(15, 10), dpi=100)
 
         splitViewTab_morph.addTablesAtBottomRight(
             ["Summary", "Distance (um)"],
@@ -457,11 +467,17 @@ class MainWindow(QtWidgets.QMainWindow):
             sortable=False,
         )
 
-        self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
-        splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
+        # self.morphAnaFigs_matplotView = MatplotView() ## host for morph analysis figures
+        # splitViewTab_morph.bottomRight_tabview.addTab(self.morphAnaFigs_matplotView,"Figures")
 
         splitViewTab_morph.addParameterToLeftTab(
-            "Analysis", AllMyPars.Morphor_analysis, self.morph_analysis_event
+            "Parameters", AllMyPars.Morphor_parameters, self.morph_analysis_event
+        )
+        splitViewTab_morph.addParameterToLeftTab(
+            "Measurments", AllMyPars.Morphor_measurments, self.morph_measure_event
+        )
+        splitViewTab_morph.addParameterToLeftTab(
+            "Export", AllMyPars.Morphor_export, self.morph_export_event
         )
         splitViewTab_morph.addTablesAtBottomRight(
             ["Morphopy features"],
@@ -681,9 +697,9 @@ class MainWindow(QtWidgets.QMainWindow):
         TextLabel.setPos(pos[0], pos[1] - 10)
         return TextLabel
 
-    def updateTreeMorphView(self, fname, redraw=False):
+    def updateTreeMorphView(self, fname, redraw=False,morphorOnly=True, showTitle=False):
         # try:
-        pv = self.splitViewTab_morph.getParTreePars("Analysis")
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")
         neutriteColors = pv['Figure options'][1]['Neutrites color'][1]
         colors = self.getNeutriteColors(neutriteColors, hex=False)
         for idx, k in enumerate(self.NeutriteColors):
@@ -699,10 +715,10 @@ class MainWindow(QtWidgets.QMainWindow):
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.set_dpi(self.parameters["defaultDPI"])
         fig2D.clf()
-        ax2D = fig2D.add_subplot(111)
-        ax2D.cla()
         if isinstance(neurons, MultiSoma):
             print('Multi soma detected!')
+            ax2D = fig2D.add_subplot(111)
+            ax2D.cla()
             ## population of neurons with soma only
             centers = {
                 "Name": [],
@@ -768,8 +784,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.updateInterCellDistance()
             self.neuronMorph =  None ## no dendrites for further analysis
         else:  ## single neuron with dendtrite and/or axons
-            fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
-            fig2D.clf()
             if self.morphor2D_cid  is not None:
                 fig2D.canvas.mpl_disconnect(self.morphor2D_cid)
                 self.morphor2D_cid = None
@@ -778,10 +792,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.morphor2D_cid = fig2D.canvas.mpl_connect('button_release_event', self.on_Morph_lims_change)
             widths = [3,1]
             # heights = [5,1]
-            gs0 = fig2D.add_gridspec(1, 2, width_ratios = widths)
-            ax2D = fig2D.add_subplot(gs0[0,0])
+            if not (morphorOnly):
+                gs0 = fig2D.add_gridspec(1, 2, width_ratios = widths)
+                ax2D = fig2D.add_subplot(gs0[0,0])
+            else:
+                ax2D = fig2D.add_subplot(111)
             ax2D.cla()
-            pv = self.splitViewTab_morph.getParTreePars("Analysis")
+            pv = self.splitViewTab_morph.getParTreePars("Parameters")
             rotateAngle = pv["Parameters"][1]["Rotate tree (degree)"][0]
             step_size=pv['Parameters'][1]['Bin size (um)'][0]
             smoothBins=pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
@@ -796,22 +813,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 neutriteColors = self.NeutriteColors, DiameterScaling = DiameterScaling
             )
             ax2D.axis("equal")  ## only works for 2D
-            # ax2D.view_init(azim=0, elev=90)
-            ax2D.set_title("{0}".format(fname), fontsize=8, color="k")
+            if showTitle:
+                ax2D.set_title("{0}".format(fname), fontsize=6, color="k")
+            else:
+                ax2D.set_title("")
             # ax2D.autoscale()
             self.morphorFig_updater.add_ax(ax2D, ['linewidth'])
-            # ax3D.set_zlim(zmin=max_scaling[0], zmax=max_scaling[1])
-            print("Neuron morphology loaded!")
-            ax_densityX = fig2D.add_subplot(gs0[0,1], sharey = ax2D)
-            ax_densityX.cla()
-            self.update_density(axis='y', step_size=step_size, ax = ax_densityX,
-             flipAxes=True, addTitle=False,smoothBins=smoothBins,smoothStandardDeviation=smoothStandardDeviation)
-            ax_densityX.xaxis.set_ticks_position('top')
-            ax_densityX.xaxis.set_label_position('top') 
-            ax_densityX.tick_params(labelbottom=False,labeltop=True)
-            ax_densityX.spines["right"].set_visible(False)
-            ax_densityX.spines["bottom"].set_visible(False)
-            fig2D.subplots_adjust(top=0.904, bottom=0.04, left=0.0, right=0.90, hspace=0.0, wspace=0.254)
+            if not (morphorOnly):
+                ax_densityX = fig2D.add_subplot(gs0[0,1], sharey = ax2D)
+                ax_densityX.cla()
+                self.update_density(axis='y', step_size=step_size, ax = ax_densityX,
+                flipAxes=True, addTitle=False,smoothBins=smoothBins,smoothStandardDeviation=smoothStandardDeviation)
+                ax_densityX.xaxis.set_ticks_position('top')
+                ax_densityX.xaxis.set_label_position('top') 
+                ax_densityX.tick_params(labelbottom=False,labeltop=True)
+                ax_densityX.spines["right"].set_visible(False)
+                ax_densityX.spines["bottom"].set_visible(False)
+                fig2D.subplots_adjust(top=0.904, bottom=0.04, left=0.0, right=0.90, hspace=0.0, wspace=0.254)
 
         ax2D.axis("off")
         self.splitViewTab_morph.matplotViews['2D'].draw()
@@ -820,7 +838,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(0)
         # self.splitViewTab_morph.matplotViews['3D'].draw()
         self.splitViewTab_morph.show()
-        if not redraw:
+
+        ## turn this on to show the summary table
+        if not (morphorOnly) and not redraw:
             df_summary = {}
             df_summary["ASC file"] = [fname]
             df_summary = extractMorphFeatures(neurons, df_summary)
@@ -832,67 +852,87 @@ class MainWindow(QtWidgets.QMainWindow):
             self.splitViewTab_morph.tables["Summary"].clear()
             self.splitViewTab_morph.tables["Summary"].appendData(df_summary)
             self.splitViewTab_morph.tables["Summary"].show()
-            self.update_mpfeatures()   
+            self.update_mpfeatures(True)
+        # self.draw_apical_dendrite_rs(ax2D)
 
-    def update_mpfeatures(self):
+    def draw_apical_dendrite_rs(self,ax):
+        maxPathLeaf, _ = longestPathLeafNode(self.neuronMorph, NeuriteType.apical_dendrite, verbose=True)
+        ms  = 1
+        sectionList = []
+        for n in maxPathLeaf.iupstream():
+            # ps = n.points
+            # ms +=0.5
+            # ax.plot(ps[:,0],ps[:,1], marker='o', markersize=ms, alpha=0.5)
+            sectionList.append(n)
+        ps, borders = resampleNeurite(sectionList, min_length_filter=5, max_length_filter=150, pathStep = 10)
+        markers = ['o','x','s','d']
+        c = 0
+        for p, b in zip(ps, borders):
+            m = markers[c%2]
+            ms = 1 + b*0.5
+            ax.plot(p[0],p[1], marker=m, markersize=ms)
+            c+=1
+
+    def update_mpfeatures(self, stats=False):
         try:
-            df_mpfeatures, N = getMorphopyFeatures(self.neuronMorph)
+            df_mpfeatures, N = getMorphopyFeatures(self.neuronMorph, stats=stats)
             self.morphPy_N = N
-            df_mpfeatures.insert(loc=0, column="fileNmae", value=self.currentMorphTreeFile)
-            df_mpfeatures  = np.array(
-                    df_mpfeatures.to_records(index=False)
-                )  ## 
-            self.splitViewTab_morph.tables["Morphopy features"].clear()
-            self.splitViewTab_morph.tables["Morphopy features"].appendData(df_mpfeatures)
-            self.splitViewTab_morph.tables["Morphopy features"].show()
+            if stats:
+                df_mpfeatures.insert(loc=0, column="fileNmae", value=self.currentMorphTreeFile)
+                df_mpfeatures  = np.array(
+                        df_mpfeatures.to_records(index=False)
+                    )  ## 
+                self.splitViewTab_morph.tables["Morphopy features"].clear()
+                self.splitViewTab_morph.tables["Morphopy features"].appendData(df_mpfeatures)
+                self.splitViewTab_morph.tables["Morphopy features"].show()
+            else:
+                self.splitViewTab_morph.tables["Morphopy features"].clear()
+
         except Exception as e:
+            print(f'loading morphorlogy {self.currentMorphTreeFile} failed')
             print(e)
 
-    def update_morphPyFig(self):
+    def update_featureHistogram(self, feature):
         '''https://github.com/berenslab/MorphoPy/blob/master/notebooks/MORPHOPY%20Tutorial.ipynb'''
-        if self.morphPy_N is None:
-            self.update_mpfeatures()
+        if (not hasattr(self, "morphPy_N")) or  self.morphPy_N is None:
+            self.update_mpfeatures(False)
 
-        statistics = ['branch_order', 'strahler_order', 
+        statistics = [feature]
+        features = ['branch_order', 'strahler_order', 
                     'branch_angle', 'path_angle', 'root_angle', 
                     'thickness', 'segment_length', 'path_length', 'radial_dist']
-
         hist_widths = [2,.2, 10, 10, 10, .05, 20, 80, 30]
         limits = [35, 5, 180, 180, 180, 0.5, 600, 2500, 900]
+        w = hist_widths[features.index(feature)]
+        lim = limits[features.index(feature)]
         N = self.morphPy_N
         Axon = N.get_axonal_tree()
         Dendrites = N.get_dendritic_tree()
         A = Axon.get_topological_minor()
         D = Dendrites.get_topological_minor()
-        # fig = self.morphAnaFigs_matplotView.getFigure()
-        fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 1D historgram",
+        fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " " + feature+"  historgram",
         size=(15,10)).getFigure()
         fig.clf()
-        k = 1
-        for stat, lim, w in zip(statistics,limits, hist_widths):
-            ax = fig.add_subplot(3,3,k)
-            for Trees, c in [[(Axon, A), 'darkgreen'], [(Dendrites, D), 'darkgrey']]:
-                if stat in ['segment_length', 'path_length', 'radial_dist']:
-                    bins = np.linspace(0,lim, 20)
-                else:
-                    bins= np.linspace(0,lim, 10)
-                if stat in ['branch_order', 'strahler_order', 'root_angle']:
-                    dist, edges = Trees[1].get_histogram(stat, bins=bins)
-                else:    
-                    dist, edges = Trees[0].get_histogram(stat, bins=bins) # you can pass options to the histogram method
+        ax = fig.add_subplot(111)
+        for Trees, c in [[(Axon, A), 'darkgreen'], [(Dendrites, D), 'darkgrey']]:
+            if feature in ['segment_length', 'path_length', 'radial_dist']:
+                bins = np.linspace(0,lim, 20)
+            else:
+                bins= np.linspace(0,lim, 10)
+            if feature in ['branch_order', 'strahler_order', 'root_angle']:
+                dist, edges = Trees[1].get_histogram(feature, bins=bins)
+            else:    
+                dist, edges = Trees[0].get_histogram(feature, bins=bins) # you can pass options to the histogram method
 
-                
-                ax.bar(edges[1:], dist, width=w, color=c, alpha=.7)
-                sns.despine()
-                xlabel = stat.replace("_", " ").capitalize()
-                if xlabel.find('length') > -1 or xlabel.find('dist') > -1 or xlabel == 'Thickness':
-                    xlabel += ' (um)'
-                elif xlabel.find('angle') > -1:
-                    xlabel += ' (deg)'
-                ax.set_xlabel(xlabel)
-                ax.set_ylabel('Frequency')
-
-            k+=1
+            ax.bar(edges[1:], dist, width=w, color=c, alpha=.7)
+            sns.despine()
+            xlabel = feature.replace("_", " ").capitalize()
+            if xlabel.find('length') > -1 or xlabel.find('dist') > -1 or xlabel == 'Thickness':
+                xlabel += ' (um)'
+            elif xlabel.find('angle') > -1:
+                xlabel += ' (deg)'
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel('Frequency')
 
         ax.legend(['Axon', 'Dendrites'])
         MATPLT.suptitle('1-D morphometric distributions', weight='bold')
@@ -918,12 +958,45 @@ class MainWindow(QtWidgets.QMainWindow):
                     maxDia = diameter
         return maxDia
 
+    def update_ad_stem_directionality_histogram(self, verbose=False):
+        if self.neuronMorph is not None:
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " apical dendrite directionality").getFigure()
+            fig.clf()
+            ax = fig.add_subplot(111)
+            ax.cla()
+            ad = getApicalDendriteDirectionConsistency(self.neuronMorph)
+            if verbose:
+                print('dendrite directionalityL mean=', np.mean(ad), np.max(ad), ' len:', len(ad))
+            ax.hist(ad, bins=25, alpha=0.7, color=self.NeutriteColors[NeuriteType.apical_dendrite])     
+
+    def update_pathLengthHistogram(self):
+        binwidth = 10
+        print("update_pathLengthHistogram", binwidth)
+        if self.neuronMorph is not None:
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " path length historgram").getFigure()
+            fig.clf()
+            c = 1
+            axes = []
+            for nt in [NeuriteType.axon, NeuriteType.basal_dendrite, NeuriteType.apical_dendrite]:
+                _, pLs = termPathLength(self.neuronMorph, neuriteType=nt)
+                if len(pLs) == 0:
+                    continue
+                ax = fig.add_subplot(3,1,c)
+                ax.cla()
+                bins = np.arange(min(pLs), max(pLs) + binwidth, binwidth)
+                ax.hist(pLs,  bins=bins, alpha=0.7, color=self.NeutriteColors[nt], label=nt.name)
+                c+=1
+                axes.append(ax)
+                ax.set_ylabel("Frequency")
+                ax.legend()
+            axes[-1].set_xlabel("Path length (um)")
+            fig.canvas.draw()
+
     def update_2D_polar_density(self, ax=None, addTitle =True, angle_step=np.pi/15, 
     neurite_type = NeuriteType.all, step_size=5, axiOps=None, showgrid=True, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
-                    # fig = self.morphAnaFigs_matplotView.getFigure()
-                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 2D Polar density").getFigure()
+                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " 2D Polar density").getFigure()
                     fig.clf()
                     ax = fig.add_subplot(111,projection="polar")
                     ax.cla()
@@ -955,8 +1028,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 smoothStandardDeviation=2, cmap="rocket"):
             if self.neuronMorph is not None:
                 if ax is None:
-                    # fig = self.morphAnaFigs_matplotView.getFigure()
-                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " 2D density").getFigure()
+                    fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " 2D density").getFigure()
                     fig.clf()
                 axes = []
                 images = []
@@ -1019,8 +1091,7 @@ class MainWindow(QtWidgets.QMainWindow):
      smoothBins=11,smoothStandardDeviation=2, addAllNeuritesPlot=True):
         if self.neuronMorph is not None:
             if ax is None:
-                # fig = self.morphAnaFigs_matplotView.getFigure()
-                fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " y axis density").getFigure()
+                fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " y axis density").getFigure()
                 fig.clf()
                 ax = fig.add_subplot(111)
                 ax.cla()
@@ -1071,13 +1142,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 fig.tight_layout()
         else:
             print('Not a morphological object for sholl analysis')
-        # self.splitViewTab_morph.bottomRight_tabview.setCurrentIndex(2)
-
 
     def update_sholl(self, step_size=1, smoothBins=11,smoothStandardDeviation=2):
         if self.neuronMorph is not None:        
-            # fig = self.morphAnaFigs_matplotView.getFigure()
-            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " Sholl intercetions").getFigure()
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " Sholl intercetions").getFigure()
             fig.clf()
             ax = fig.add_subplot(111)
             ax.cla()
@@ -1226,22 +1294,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toogleMouseModePanAction.triggered.connect(self.MouseMode_clicked)
         self.toolbar.addAction(self.toogleMouseModePanAction)
 
-        # self.toogleDetectSpikeAction = pg.QtGui.QAction(
-        #     pg.QtGui.QIcon(spk_icon), "Firing pattern"
-        # )
-        # self.toogleDetectSpikeAction.setShortcut("Alt+a")
-        # self.toogleDetectSpikeAction.setStatusTip("Firing pattern")
-        # self.toogleDetectSpikeAction.triggered.connect(self.detectSpikes_clicked)
-        # self.toolbar.addAction(self.toogleDetectSpikeAction)
-
-        # self.exportAction = pg.QtGui.QAction(
-        #     pg.QtGui.QIcon(connection2_icon), "Connectivtiy"
-        # )
-        # self.exportAction.setShortcut("Alt+e")
-        # self.exportAction.setStatusTip("Connectivtiy")
-        # self.exportAction.triggered.connect(self.exportConnectionFig_clicked)
-        # self.toolbar.addAction(self.exportAction)
-
         self.importSlicetAction = pg.QtGui.QAction(
             pg.QtGui.QIcon(neuron_icon), "Import slice image"
         )
@@ -1282,13 +1334,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.currentAnMorphView = ''
 
     def prepareTree(self, fname):
+        '''prepare tree for visualization'''
         self.visulization_view.setCurrentIndex(5)
         self.currentMorphTreeFile = fname
         if fname[-3:] in ["asc","ASC"] and glob.glob(fname[:-4] + "_mod.ASC") == []:
-            fname = cleanASCfile(fname)  ## to clean not-want sections
+            fname = cleanASCfile(fname)  ## to clean unwant sections
         self.splitViewTab_morph.matplotViews["2D"].getFigure().clf()
-        self.morphAnaFigs_matplotView.getFigure().clf()
-        self.updateTreeMorphView(fname)
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")        
+        morphorOnly = pv['Figure options'][1]['Morphology only'][0]
+        showTitle = pv['Figure options'][1]['Show title'][0]
+        self.updateTreeMorphView(fname, redraw=False, morphorOnly=morphorOnly, showTitle=showTitle)
         if fname[-8:] == "_mod.ASC":
             os.remove(fname)
 
@@ -2506,7 +2561,7 @@ class MainWindow(QtWidgets.QMainWindow):
             funcPars[k] = dt[k]
         df = pd.DataFrame.from_dict(funcPars, orient="index").transpose()
         df = np.array(
-            df.to_records(index=False)
+            df.to_records(index=True)
         )  ## format dataframe for using in QtTable wiget
         self.templateFit.clear()  ## clear table for new template
         self.templateFit.appendData(df.copy())  ## update QtTable widget
@@ -3363,45 +3418,74 @@ class MainWindow(QtWidgets.QMainWindow):
          self.showdialog(
             "For source code & documentation, see details below: ",
             "Source code & issue reporting:\n https://github.com/ZeitgeberH/patchview \n\nDocumentation:\n https://patchview.readthedocs.io/en/latest/index.html",
-        )       
+        )
+
     def makeNWBobject(self):
         selected = self.currentPulseTree.selectedItems()
-        sel = selected[0]
-        selIdx = sel.index
-        if len(selIdx) < 2:
-            return
-        nwbObj = dat2NWB(self.currentPulseTree.dat_file, [selIdx[0], selIdx[1]])
-        return nwbObj
+        traceIdex_selected = sorted(self.currentPulseTree.selectedTraceIndex)
+        pv_ephy = dat2NWB(self.currentPulseTree.dat_file) # a pvEphy object
+        sweepIdx = []
+        for sel in selected:
+            selIdx = sel.index
+            if len(selIdx) == 2: # series level
+                seriesNode = getAllChildIndexFromItem(sel)
+                for c in seriesNode: # sweep level
+                    sweepIdx.append(c.index) #
+            elif len(selIdx) == 3: # sweep level
+                sweepIdx.append(selIdx)
+        pv_ephy.loadProtocols('patchview') 
+        pv_ephy.AddSweeps(sweepIndex=sorted(sweepIdx), traceIndex=traceIdex_selected)               
+        return pv_ephy
 
     def getSaveFileNameNWB(self):
         """save file dialog. Return the path and filename for saving user selected data"""
         fileName = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save File",
-            self.root + self.QtFileNameLabel.text()[:-4],
+            self.root + self.currentPulseTree.dat_file+'_',
             "NWB (*.nwb)",
         )
         return fileName[0]
 
     def saveNWB_clicked(self):
+        ''' save NWB file
+        temporary solution before unified data structure
+        '''
         fileName = self.getSaveFileNameNWB()
+        pvNWB = None
         if fileName !='':
-            self.nwbObj = self.makeNWBobject()
-            if self.nwbObj !=None:
-                self.statusBar.showMessage(" " + fileName, 3000)
-                self.nwbObj.saveNBF(fileName)
+            ext = self.currentPulseTree.fileSourceFormat
+            if ext in [".dat",".abf"]:
+                pvNWB = self.makeNWBobject()
+            elif ext in ['.nwb']:
+                pvNWB = self.currentPulseTree.pvEphy
+        if hasattr(self.currentPulseTree, 'pvEphy'):
+            if hasattr(self.currentPulseTree.pvEphy, 'io'): # has io handle
+                self.currentPulseTree.pvEphy.io.close() ## close the file before saving
+            self.currentPulseTree.pvEphy = None # reset the handle
+            GCollector.collect() # force garbage collection
+        if pvNWB is not None:
+            self.statusBar.showMessage(" " + fileName, 3000)
+            pvNWB.saveNWB(fileName)
+            self.currentPulseTree.pvEphy = pvNWB
 
     def exit_clicked(self):
+        self.reset() ## this should destroy all handles
+        self.close()
+        
+    def closeEvent(self, event):
         self.reset()
         self.close()
-
-    #        self.app.closeAllWindows()
 
     def reset(self):
         """this wipe out every thing. Be careful"""
         self.currentSelectedIndex = []
-        self.trace_view.clear()  ## refresh the layout
-        self.trees_view.setCurrentIndex(0)
+        try:
+            self.trace_view.clear()  ## refresh the layout
+            self.trees_view.setCurrentIndex(0)
+        except Exception as e:
+            print('trace_view clear error \n')
+            print(e)
         self.cellFeatures_view.clear()
         self.sweepFeatures_view.clear()
         self.spikeTable_view.clear()
@@ -3427,6 +3511,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spikeTableSavePath = ""
         self.morphor2D_cid = None
         self.morphorFig_updater = None
+        self.morphPy_N = None
+        if hasattr(self, "MatPlotWindows"):
+            for m in self.MatPlotWindows:
+                m.close()
+            self.MatPlotWindows = []
+        GCollector.collect()  ## force garbage collection
 
     def resetAll_clicked(self):
         self.reset()
@@ -3582,8 +3672,8 @@ class MainWindow(QtWidgets.QMainWindow):
         fileName = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save File",
-            self.root + self.QtFileNameLabel.text()[:-4] + "_PV",
-            "pickle (*.dat)",
+            self.root + self.currentPulseTree.dat_file+'_' #self.QtFileNameLabel.text()[:-4] + "_PV",
+            "NWB (*nwb); pickle (*.dat)",
         )
         return fileName[0]
 
@@ -3977,7 +4067,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spikes_view.draw()
 
     def getEphyFeatures(self):
-
         selected = self.currentPulseTree.selectedItems()
         self.visulization_view.setCurrentIndex(1)
         if not len(selected):
@@ -3988,7 +4077,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(sel.index) != 2:
             self.showdialog("To extract spike fetures, please select a series!")
             return 0
-        if self.currentPulseTree.filetype == ".dat":
+        if self.currentPulseTree.fileSourceFormat == ".dat":
             title = (
                 self.sliceName[:-4]
                 + " "
@@ -4005,7 +4094,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 stimInfo,
                 serieInfo,
             ) = self.extractSingleSeries(sel)
-        elif self.currentPulseTree.filetype == ".abf":
+        elif self.currentPulseTree.fileSourceFormat == ".abf":
             title = (
                 self.currentPulseTree.dat_file[:-4].split("\\")[-1]
                 + " "
@@ -4016,7 +4105,21 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             time, data = self.extractSingleSeries_ABF(sel.index)
             stimInfo = self.currentPulseTree.abf_stimInfo
-
+        elif self.currentPulseTree.fileSourceFormat  == ".nwb":
+            time, data, srate = self.prepareVoltageNDarray_NWB(sel)
+            fpChanIdx = 0 # need a generic way to address this
+            data = np.squeeze(data[:,:,fpChanIdx])
+            # data = data.T ## in mV
+            print('ephy data shape: ', data.shape)
+            stimInfo = []
+            for i in range(data.shape[1]):
+                stimInfo.append([{},{}])
+                stimInfo[i][1]["start"] = 1.0*srate
+                stimInfo[i][1]["end"] = 2.0*srate
+                stimInfo[i][1]["sampleInteval"] = 1/srate
+                stimInfo[i][1]["amplitude"] = -110.0+ i*20.0
+                stimInfo[i][1]["Vholding"] = 0
+            title = self.currentPulseTree.pvEphy.nwbfile.session_id
         (
             dv_cutoff1,
             min_height1,
@@ -4166,7 +4269,7 @@ class MainWindow(QtWidgets.QMainWindow):
             datName, series_index = self.checkNodeIndex()
             time, data = self.extractSingleSeries_ABF(series_index)
             avg = np.mean(data, 1)
-            pdb.set_trace()
+
 
     def gpAna(self, option):
         ''' Custom module for cross correlation between voltage of pair of channels in a multi-patch experiment
@@ -5565,6 +5668,11 @@ class MainWindow(QtWidgets.QMainWindow):
             )  ## ID for stimulation channel
         self.selTrees.update_tree_recursive(self.selTrees.invisibleRootItem(), [])
 
+    def update_treeWidget(self, n):
+        '''n: neuorM object'''
+        self.currentMorphoTree.clear()
+        self.currentMorphoTree = None # clean up the tree widget for reusing
+
     def update_pul(self, dat_file, dat_index=None, ext=".dat"):
         """
         Makes call to update pul view.
@@ -5573,11 +5681,13 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         if dat_file == "":
             return
-        self.hideSpikePanels()
+        self.updateCurrentPulseTree()
         self.currentPulseTree.clear()
         self.currentPulseTree.sweepCount = 0
         self.currentPulseTree.traceCount = 0
+        self.currentPulseTree.selectedTraceIndex = []
         self.currentPulseTree.dat_file = dat_file  ## data file
+        self.currentPulseTree.fileSourceFormat = ext
         if ext == ".dat":
             self.currentPulseTree.bundle = HEKA.Bundle(dat_file)
             self.currentPulseTree.update_tree_recursive(
@@ -5591,10 +5701,40 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             self.parameters["fs"] = self.currentPulseTree.abf.get_signal_sampling_rate()
             self.currentPulseTree.abf_stimInfo = self.extractStimData_ABF()
+        elif ext == '.nwb':
+            # self.currentPulseTree.pvEphy = dandiNWB(dat_file) # how to make this more general?
+            self.currentPulseTree.pvEphy = self.createPVEphyInstance(dat_file, self.getNWBClass()) # how to make this more general?
+            self.currentPulseTree.update_withNWB_sweepTable(
+                self.currentPulseTree.invisibleRootItem()
+            )
+            self.addNWB_metaIinfo()
         # self.currentPulseTree.expandAll()
         self.gatherParameters(ext)
         self.updateStatusBar_fileName()
 
+    def getNWBClass(self):
+        pv = self.globalSettings.p.getValues()
+        nwbClassName = pv["data preprocessing"][1]["NWB sweep table grouping"][0]
+        try:
+            nwbClass = eval(nwbClassName)
+        except:
+            nwbClass = pvNWB
+            print('getNWBClass: ', nwbClassName, ' not found, use pvNWB')
+        return nwbClass
+
+    def createPVEphyInstance(self, dat_file, nwbClasss=None):
+        ''' create a pvEphy instance for the current file according to the user-defined class
+            userDefinedClass: a class object
+            return a pvEphy instance according to user defined class
+        '''
+        if nwbClasss is None:
+            nwbClasss = pvNWB # base class
+        else:
+            assert issubclass(nwbClasss, pvNWB), 'nwbClasss must be a subclass of pvNWB'
+        print('createPVEphyInstance: ', nwbClasss, dat_file)
+        return nwbClasss(dat_file)
+        
+        
     def updateStatusBar_fileName(self):
         if self.currentPulseTree.dat_file != None:
             if hasattr(self, "QtFileNameLabel"):
@@ -5675,22 +5815,44 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.plotItemList:  ## update mouse mode if not empty
             self.setViewboxMouseMode()
 
+    def update_selected_index(self):
+        ''' Seperate plotting widget selection tree with Exporting tree.
+        '''        
+        selected = self.currentPulseTree.selectedItems()
+        # self.currentPulseTree.current_selected_nodes = selected
+        # self.currentPulseTree.current_selected_sweep_indies = []
+        # if not selected:
+        #     return  # non-selected
+        # sel_levels = [] # check consistency of selection levels
+        # for sel in selected:
+        #     if len(sel.index) == 
+        #     self.currentPulseTree.current_selected_sweep_indies.append(sel.index)
+
+        # selected = [selected[i] for i, l in enumerate(sel_levels) if l==use_level]
+
     def update_trace_plot(self, selected=None):
         """Show data associated with the selected tree node.
         For all nodes, the meta-data is updated in the bottom tree.
         For trace nodes, the data is plotted.
         """
-        self.plt = []  ## plot handles
-        self.plotItemList = []  ## collect all plot handles
-        ### BUILD A plot!
-        # pdb.set_trace()
-        self.trace_view.clear()  ## refresh the layout
-        #        self.trace3DView.clear()
-        # self.trace3DView.hide()
-        self.updateUserParamters()
         selected = self.currentPulseTree.selectedItems()
         if not selected:
             return
+        sel_levels = [] # check consistency of selection levels
+        # if multi-levels are selected (a trace and a sweep for example)
+        # opt to highest level
+        for sel in selected:
+            sel_levels.append(len(sel.index))
+        use_level = min(sel_levels)
+        # filtered all levels below
+        selected = [selected[i] for i, l in enumerate(sel_levels) if l==use_level]
+        self.plt = []  ## plot handles
+        self.plotItemList = []  ## collect all plot handles
+        try:
+            self.trace_view.clear()  ## refresh the layout
+        except Exception as e:
+            print('trace_view clear error')
+        self.updateUserParamters()
         self.currentSelectedIndex = selected
         self.visulization_view.setCurrentIndex(0)
         # update data tree
@@ -5722,6 +5884,11 @@ class MainWindow(QtWidgets.QMainWindow):
             multiSweeps = False
         for kkk, sel in enumerate(selected):
             treeLevel = len(sel.index)  ## group 1; series, 2; sweep: 3; trace: 4
+            # if treeLevel !=use_level:
+            #     print(f'sel level {treeLevel}, max level {use_level}')
+            #     continue
+            if treeLevel==4 and kkk==0: # init a new selection buffer
+                self.currentPulseTree.selectedTraceIndex = [] # temporally hold trace index that user wants to show at sweep level and above
             self.checkSeriesType(sel)
             if treeLevel < 1:
                 return  ## do nothing at group level
@@ -5738,14 +5905,24 @@ class MainWindow(QtWidgets.QMainWindow):
                         # self.plotSingleSeries3D(sel)
                         self.parameter_Tab.clear()
                         self.plotAveragedTraces(sel)
+                        
                 elif self.currentPulseTree.filetype == ".abf":
                     self.plotSingleSeries_ABF(sel)
+                    
+                elif self.currentPulseTree.filetype == ".nwb":
+                    children = getAllSiblings(sel)
+                    sel.setExpanded(True)
+                    for c in children: # shrink all siblings
+                        c.setExpanded(False)
+                    sweepIdx  = [c.index[2] for c in getAllChildIndexFromItem(sel)]
+                    self.plotSeletedSweeps_NWB(sweepIdx, newAxis=True,chanIdx = self.currentPulseTree.selectedTraceIndex)
+                break
 
             if treeLevel == 3:  ##  sweep level: all channels at this sweep
                 if self.currentPulseTree.filetype == ".dat":
                     self.plotSingleSweep(sel, kkk, Nsel, getSpikeFeature, multiSweeps)
                     self.parameter_Tab.clear()
-                else:
+                elif self.currentPulseTree.filetype == ".abf":
                     if kkk == 0:
                         plotHandle = self.trace_view.addPlot(row=0, col=0)
                         self.plotItemList.append(plotHandle)
@@ -5764,8 +5941,37 @@ class MainWindow(QtWidgets.QMainWindow):
                         highCutOff=None,
                         analaysisSpike=True,
                     )
-
+                elif self.currentPulseTree.filetype == ".nwb": # sweep level
+                    if len(selected) == 1: # if one sweep is slected.
+                        sel  =selected[0]
+                        children = getAllSiblings(sel)
+                        # sel.setExpanded(True)
+                        for c in children: # shrink all siblings
+                            c.setExpanded(False)
+                    self.currentPulseTree.selectedTraceIndex = sorted(list(set(self.currentPulseTree.selectedTraceIndex)))
+                    sweepIdx = [sel.index[2] for sel in selected]
+                    metaInfos = self.plotSeletedSweeps_NWB(sweepIdx, chanIdx = self.currentPulseTree.selectedTraceIndex,
+                    newAxis=True, allSweeps=True) # return list of metaInfo for selected sweeps
+                    metaInfo = metaInfos[-1] ## just show the last one
+                    # set parameters
+                    # add sweep level data on top of the file level data
+                    self.addNWB_metaIinfo() ## we will need to reset the metaInfo before adding new
+                    data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
+                    self.parameter_Tab.appendData(data)
+                    if getSpikeFeature:
+                        self.plot_splitter.setStretchFactor(0, 1)
+                        self.plot_splitter.setStretchFactor(1, 1)
+                        self.trace_view2.show()
+                        self.plot_alignedSpikes_SingleTrace(
+                            sel.index[2], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
+                        )
+                    break
+                else:
+                    print("File type not supported yet!")
+                    break
             if treeLevel == 4:  ##  trace level: all sweeps, all channels
+                if not (sel.index[3] in self.currentPulseTree.selectedTraceIndex): # avoid duplicated
+                    self.currentPulseTree.selectedTraceIndex.append(sel.index[3])
                 if self.currentPulseTree.filetype == ".dat":
                     self.vds = 0  ## no downsampling
                     if kkk == 0:
@@ -5801,9 +6007,39 @@ class MainWindow(QtWidgets.QMainWindow):
                         )
                 elif self.currentPulseTree.filetype == ".abf":
                     print("Need to figure out if there are multichannels")
-
+                else:
+                    sweepIdx = [sel.index[2]] # a single sweep
+                    if kkk==0:
+                        newAxis=True
+                    else:
+                        newAxis=False
+                    metaInfos = self.plotSeletedSweeps_NWB(sweepIdx, chanIdx=[sel.index[3]],newAxis=newAxis) # return list of metaInfo for selected sweeps
+                    metaInfo = metaInfos[-1] ## just show the last one
+                    # set parameters
+                    # add sweep level data on top of the file level data
+                    self.addNWB_metaIinfo() ## we will need to reset the metaInfo before adding new
+                    data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
+                    self.parameter_Tab.appendData(data)
+                    if getSpikeFeature:
+                        self.plot_splitter.setStretchFactor(0, 1)
+                        self.plot_splitter.setStretchFactor(1, 1)
+                        self.trace_view2.show()
+                        self.plot_alignedSpikes_SingleTrace(
+                            sel.index[3], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
+                        )
+        selTip = self.currentPulseTree.dat_file+'. Selected trace index: '
+        selTip +=', #'.join([str(x+1) for x in self.currentPulseTree.selectedTraceIndex])
+        self.QtFileNameLabel.setText(selTip)
         if self.plotItemList:  ## update mouse mode if not empty
             self.setViewboxMouseMode()
+
+    def addNWB_metaIinfo(self):
+        '''add file level metainformation to the parameter table
+        metainfo is a dictionary from pvEphy class'''
+        metaInfo = self.currentPulseTree.pvEphy.metaInfo._asdict()
+        data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
+        self.parameter_Tab.clear()
+        self.parameter_Tab.setData(data)
 
     def plotSingleStimTrace(self, plt, index, myPen):
         """only at series level!"""
@@ -5933,7 +6169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif len(sel.index) == 4:
             sel = sel.parent()
             sel = sel.parent()  ## to reach series level!
-        if self.currentPulseTree.filetype == ".dat":
+        if self.currentPulseTree.fileSourceFormat == ".dat":
             protocolType = self.querySessionProtocolByLabel(sel.node.Label)
             stimChanID = self.searchForStimchan(sel.node.Label)
             # print('stimchanID 5913', stimChanID)
@@ -6091,6 +6327,177 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trace_view.ci.layout.setRowStretchFactor(0, 3)
             self.trace_view.ci.layout.setRowStretchFactor(1, 1)
             plotHandle.setLabel("bottom", "", units="")
+
+    def plotSingleSweep_NWB(self,
+        plotHandle,
+        sweepIdx,
+        myPen,
+        highCutOff=None,
+        title=True,
+        scaleBar=True,
+        analaysisSpike=True,
+        plotStim=True,
+        stim=None,
+        data=None,
+        metaInfo = None, 
+        chanIdx: list=[]):
+        ''' Plot single sweep.
+
+        Parameters
+        -----------
+        chanIdx: list of channels to be plot. default: all channels
+        '''
+        ## check plotSingleTrace. Unify all the plotSingleTrace functions!
+        plotHandle.showGrid(x=True, y=True)
+        if stim is None or data is None or metaInfo is not None:
+            stim, data, metaInfo = self.currentPulseTree.pvEphy.getSweepData(sweepIdx)
+        data_fs = metaInfo['recording_rate']
+        plotHandle.setLabels(
+            bottom=("Time", metaInfo['recording_time_unit']),
+            left=(metaInfo['recording_unit']),
+        )
+        for d in data:
+            if len(d.shape) > 1:  # multi channels
+                if len(chanIdx)==0:
+                    chanIdx = range(d.shape[1])
+                for c in chanIdx:
+                    d[:,c] = self.bandPass_signal(d[:,c], highCutOff, fs=data_fs)
+                    time = np.arange(d.shape[0]) / data_fs
+                    if len(chanIdx)>1: # multi channel, use channel color. Otherwise, use myPen from input
+                        myPen = pg.mkPen(
+                            color=pg.intColor(c, hues = d.shape[1])
+                        )  ## the pen to draw this
+                    g = plotHandle.plot(time, d[:,c], pen=myPen)
+            else: # single channel``
+                d = self.bandPass_signal(d, highCutOff, fs=data_fs)
+                time = np.arange(len(d)) / data_fs
+                myPen = pg.mkPen('r')
+                g = plotHandle.plot(time, d,  pen=myPen)
+                plotHandle.autoRange()
+        if scaleBar:
+            scale = pg.ScaleBar(size=0.02, suffix="s")
+            scale.setParentItem(plotHandle.getViewBox())
+            scale.anchor((1, 1), (1, 1), offset=(-20, -20))
+        if title:
+            title_ = (
+                self.currentPulseTree.dat_file[:-4].split("\\")[-1]
+            )
+            plotHandle.setTitle(title_)
+        if plotStim:
+            self.trace_view.nextRow()  ## for stimulation
+            plt_stim = self.trace_view.addPlot(col=0, colspan=4)
+            # myPen = pg.mkPen('w')  ## the pen to draw this
+            stim_time = np.arange(len(stim)) / metaInfo['stim_rate']
+            plt_stim.plot(stim_time, stim, pen="w")
+            plt_stim.showGrid(x=True, y=True)
+
+            plt_stim.setLabels(bottom=(f"Time ({metaInfo['stim_time_unit']})"))
+            plt_stim.setLabels(
+                left=(f"Current ({metaInfo['stim_unit']})")
+            )
+            plt_stim.setXLink(plotHandle)  ## link x axis for all subplots
+            self.trace_view.ci.layout.setRowStretchFactor(0, 3)
+            self.trace_view.ci.layout.setRowStretchFactor(1, 1)
+            plotHandle.setLabel("bottom", "", units="")
+        return data, time, metaInfo
+
+    def getSpikeLineColor(self):
+        spkLine =self.splitViewTab_FP.getParTreePars("Spike detection")['Visual aesthetics']
+        spkLine_lw = spkLine[1]['line width'][0]
+        spkLine_col = spkLine[1]['line color'][0]
+        spkLine_col = MATPLTcolors.to_rgb(spkLine_col.name()) ## rgb color
+        spkLine_col = MATPLTcolors.rgb_to_hsv(spkLine_col)
+        return spkLine_lw, spkLine_col
+
+    def plotSeletedSweeps_NWB(self, sweepIdx: list[int], chanIdx:list=[], plotStim=True, newAxis=False, allSweeps=False):
+        ''' Control how to plot selected sweeps
+
+        Parameters
+        -----------
+        sweepIdx: `List` of `int`: sweep index. 
+
+        chanIdx: `List` of `int`: channel index to plot. Default [], all channels avaiable.
+        plotStim: `Bool`. Show stimulus or not.
+        newAxis: `Bool`. create a new subplot axis if True.
+        allSweeps: `Bool`. Plot all sweeps or not. For peformance purpose, we plot 8 sweeps of a series. Set True if desires to draw
+        all sweeps (for example, use selected more than 8 sweeps)
+        ''' 
+        if newAxis:
+            plotHandle = self.trace_view.addPlot(
+                col=0, colspan=4
+            )  ## add a subplot on the graphic layout
+            self.plotItemList.append(plotHandle)
+        else:
+            plotHandle = self.plotItemList[0]
+        ## loops through all the sweeps.
+        # nSweep = sel.childCount()
+        # sweepIdx = [sel.child(c).index[2] for c in range(nSweep)]
+        nSweep = len(sweepIdx)
+        drawN = 8
+        if allSweeps or nSweep <= drawN:
+            drawN = nSweep
+        else:      
+            # spkLine_lw, spkLine_col = self.getSpikeLineColor()        
+            sIdx = np.linspace(0, nSweep, drawN).astype(int)
+            sweepIdx = [sweepIdx[i] for i in sIdx if i < nSweep]
+
+        stims = []
+        metaInfos = []
+        # selIdx = sel.index.copy()
+        allPens = []
+        idx = 0
+        for idx, sweepIdx_ in enumerate(sweepIdx):  # enumerate(block.segments):
+            myPen = pg.mkPen(
+                    color=pg.intColor(drawN - idx - 1, hues=drawN)
+                )  ## the pen to draw this
+            # qcol = pg.hsvColor(spkLine_col[0], 1.0-idx/drawN , 1.0, 1.0)
+            # myPen = pg.mkPen(color=qcol)
+            allPens.append(myPen)
+            stim, resp, metaInfo = self.currentPulseTree.pvEphy.getSweepData(sweepIdx_)
+            stims.append(stim)
+            metaInfos.append(metaInfo)
+            self.plotSingleSweep_NWB(
+                plotHandle,
+                sweepIdx_,
+                myPen,
+                title=False,
+                scaleBar=False,
+                analaysisSpike=False,
+                plotStim=False,
+                stim = stim,
+                data = resp,
+                metaInfo = metaInfo,
+                chanIdx =chanIdx
+            )
+        
+        scale = pg.ScaleBar(size=0.02, suffix="s")
+        scale.setParentItem(plotHandle.getViewBox())
+        scale.anchor((1, 1), (1, 1), offset=(-20, -20))
+        plotHandle.setTitle(
+            self.currentPulseTree.dat_file[:-4].split("\\")[-1]
+        )
+
+        if plotStim:
+            if newAxis:
+                self.trace_view.nextRow()  ## for stimulation
+                plt_stim = self.trace_view.addPlot(col=0, colspan=4)
+                self.plotItemList.append(plt_stim)
+            else:
+                plt_stim = self.plotItemList[-1]
+            for idx, stim in enumerate(stims):
+                stim_time = np.arange(len(stim)) / metaInfo['stim_rate']
+                plt_stim.plot(stim_time, stim, pen=allPens[idx])
+            plt_stim.showGrid(x=True, y=True)
+            plt_stim.setLabels(bottom=("Time (s)"))
+            plt_stim.setLabels(
+                left=(f"Current ({metaInfos[0]['stim_unit']})")
+            )
+            plt_stim.setXLink(plotHandle)  ## link x axis for all subplots
+            self.trace_view.ci.layout.setRowStretchFactor(0, 3)
+            self.trace_view.ci.layout.setRowStretchFactor(1, 1)
+            plotHandle.setLabel("bottom", "", units="")
+        return metaInfos
+
 
     def plotSingleTrace_ABF(
         self,
@@ -6371,6 +6778,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for p in plt[:-1]:
                 p.setXLink(plt[-1])  ## link x axis for all subplots
 
+
     def getEphySpikePars(self):
         pv = self.splitViewTab_FP.getParTreePars("Spike detection")
         # This is just to get spikes peaks. Need to use higher cutoff for dvdt-v phase plot
@@ -6629,6 +7037,127 @@ class MainWindow(QtWidgets.QMainWindow):
             dv_cutoff1,
         )
 
+    def prepareVoltageNDarray_NWB(self, sel):
+        children = getAllChildIndexFromItem(sel)
+        sweepIdx = [c.index[2] for c in children] ## sweep table index
+        minSample = 1e10
+        resps = []
+        for sidx in sweepIdx:
+            stim, response, metaInfo = self.currentPulseTree.pvEphy.getSweepData(sidx)
+            # response are list of np array. 1 for single channel; n for multiple channel
+            if len(response[0]) < minSample:
+                minSample = len(response[0])
+            resps.append(response) ##
+        nChan = len(response)
+        srate = metaInfo["recording_rate"]
+        t = np.linspace(0, minSample / srate, minSample)
+        data = np.array(resps)
+        if len(data.shape) == 4:
+            data = data [:,0,:,:] # squeeze. sweep, np.newaxis, time, channel
+        else:
+            data = data[:,0,:,np.newaxis] # squeeze. sweep, np.newaxis, time, channel
+        data = np.swapaxes(data, 0, 1)[:minSample]  # time, sweep, channel
+        return t, data, srate
+
+    def getSingleTraceFeature_NWB(self, sweepTableIndex, sweepIdx):
+        self.updateUserParamters()
+        stim, v, metaInfo = self.currentPulseTree.pvEphy.getSweepData(sweepTableIndex)
+        t = np.linspace(0, len(v) / metaInfo["recording_rate"], len(v))
+        v = v *1000.0
+        sampleRate = metaInfo["recording_rate"]
+        start = 1.0
+        end = 2.0
+        curr = -110.0+ sweepIdx*20.0
+        if self.parameters["HF"] < sampleRate / 2:
+            filterHighCutFreq_signal = self.parameters["HF"]  ## 10 KHz
+        else:
+            filterHighCutFreq_signal = np.floor((sampleRate - 100.0)) / 2  ## KHz
+        (
+            dv_cutoff1,
+            min_height1,
+            min_peak1,
+            thresh_frac1,
+            baseline_interval1,
+            baseline_detect_thresh1,
+            max_interval1,
+            filterHighCutFreq_spike,
+        ) = self.getEphySpikePars()
+
+        ## this is to get spike peak.
+        if filterHighCutFreq_spike >= sampleRate / 2:
+            filterHighCutFreq_signal = np.floor((sampleRate - 100.0)) / 2  ## KHz
+
+        EphysObject = efex.EphysSweepFeatureExtractor(
+            t=t,
+            v=v,
+            i=stim,
+            start=start,
+            end=end,
+            filter=filterHighCutFreq_spike / 1000,
+            dv_cutoff=dv_cutoff1,
+            max_interval=max_interval1,
+            min_height=min_height1,
+            min_peak=min_peak1,
+            thresh_frac=thresh_frac1,
+            baseline_interval=baseline_interval1,
+            baseline_detect_thresh=baseline_detect_thresh1,
+        )
+        EphysObject.process_spikes()
+        spike_df, sweep_df = extract_sweep_feature(t, v, curr, start, end, EphysObject)
+        v_filtered = ephys_ft.calculate_v_filter(v, t, filterHighCutFreq_signal / 1000)
+        dvdt = ephys_ft.calculate_dvdt(v, t, filterHighCutFreq_signal / 1000)
+        dvdt1 = np.insert(dvdt, 0, 0)
+        if EphysObject._spikes_df.size:
+            peaks = spike_df["peak_index"].to_list()  ## lis tof peak index
+            try:
+                maxSPwidth = int(spike_df["width"].max(skipna=True) * sampleRate * 2.5)
+            except:
+                maxSPwidth = int(
+                    (spike_df["peak_index"] - spike_df["threshold_index"]).max() * 5
+                )
+                print("exception happens")
+            try:
+                before_ = (
+                    int((spike_df["peak_index"] - spike_df["threshold_index"]).max())
+                    + 100
+                )
+            except:
+                maxSPwidth = int(maxSPwidth // 2)
+            try:
+                after_ = int((spike_df["trough_index"] - spike_df["peak_index"]).max())
+                if after_ > 3 * before_:
+                    after_ = 3 * before_
+            except:
+                after_ = int(maxSPwidth - maxSPwidth // 20)
+
+            waves = np.zeros((after_ + before_, len(peaks)))
+            waves_dvdt = np.zeros((after_ + before_, len(peaks)))
+            waveTime = np.arange(-before_, after_) / sampleRate * 1e3
+            for j, p in enumerate(peaks):
+                start_index = p - before_
+                end_index = p + after_
+                # print(start_index, end_index, sweepCount)
+                waves[:, j] = v_filtered[start_index:end_index]
+                waves_dvdt[:, j] = dvdt1[start_index:end_index]
+        else:
+            peaks = []
+            waves = []
+            waves_dvdt = []
+            waveTime = []
+        return (
+            t,
+            v_filtered,
+            dvdt1,
+            peaks,
+            waveTime,
+            waves,
+            waves_dvdt,
+            spike_df,
+            end - start,
+            dv_cutoff1,
+        )
+
+
     def plot_dvdt_v_phasePlot(self, v_spike, dvdt_spike, sweepNumber, plotWidget):
         plotWidget.clear()  ## refresh the layout
         plt = plotWidget.addPlot()
@@ -6677,7 +7206,7 @@ class MainWindow(QtWidgets.QMainWindow):
         trace=None,
         time=None,
     ):
-        if isABF:
+        if self.currentPulseTree.fileSourceFormat  == ".abf":
             (
                 t,
                 v,
@@ -6699,7 +7228,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 + str(traceIdx[1] + 1)
             )
             sweepNumber = traceIdx[1]
-        else:
+        elif self.currentPulseTree.fileSourceFormat  == ".dat":
             (
                 t,
                 v,
@@ -6721,8 +7250,37 @@ class MainWindow(QtWidgets.QMainWindow):
                 + str(traceIdx[2] + 1)
             )
             sweepNumber = traceIdx[2]
-
-        print(title)
+        elif self.currentPulseTree.fileSourceFormat  == ".nwb":
+            sel = self.currentPulseTree.selectedItems()[0]
+            grpIndex = sel.index[0]
+            swGpIndex = sel.index[1]
+            sweepTableIndex= sel.index[2] # absolute sweep number in sweep table
+            sweepNumber = sweepTableIndex
+            swpList = list(self.currentPulseTree.pvEphy.sweepGroups[swGpIndex].patchview_sweeps.keys())
+            numberOfSweep = len(swpList) # sweep group
+            # relativeSweepIndex = swpList.index(f'{sweepTableIndex:03}') # sweep index in sweep group
+            try:
+                (t,v,dvdt,
+                    peaks,
+                    waveTime,
+                    waves,
+                    waves_dvdt,
+                    spike_df,
+                    dur,
+                    dv_cutoff,
+                ) = self.getSingleTraceFeature_NWB(sweepTableIndex, relativeSweepIndex)
+            except:
+                mplWidget.figure.clear()
+                mplWidget.clf()
+                plotWidget2.clear()
+                return
+            title = 'sweep ' + str(sweepNumber)
+        if len(peaks) == 0:
+            # print('No spike detected')
+            mplWidget.figure.clear()
+            mplWidget.clf()
+            plotWidget2.clear()
+            return
         if mplWidget == None:  ## pure matplotlib
             fig = MATPLT.figure(figsize=(10, 10))
             fig.canvas.set_window_title(title)
@@ -6760,11 +7318,17 @@ class MainWindow(QtWidgets.QMainWindow):
             axes[0].title.set_text(title)
             axes[0].set_xlabel("Time (S)")
             axes[0].set_ylabel("Voltage (mV)")
+            xlim_range = axes[0].get_xlim()
+
             if len(peaks) > 0:
+                peakTime = [t[p] for p in peaks]
+                if xlim_range[-1] > peakTime[-1]+1.0:
+                    xextent = peakTime[-1]+1.0
+                else:
+                    xextent = xlim_range[-1]
+                axes[0].set_xlim([xlim_range[0], xextent])
                 for p in peaks:
                     axes[0].plot(t[p], v[p], "og", zorder=1)
-                # axes[0].legend(['dv/dt','v', 'peak'])
-
                 plt1 = mplWidget.figure.add_subplot(gs[0, 1])
                 axes.append(plt1)
                 for j in range(len(peaks)):
@@ -6775,17 +7339,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 axes[1].set_xlabel("Time (mS)")
                 axes[1].set_ylabel("Voltage (mV)")
                 axes[1].grid("on")
-
                 plt2 = mplWidget.figure.add_subplot(gs[1, 0])
                 axes.append(plt2)
-                peakTime = [t[p] for p in peaks]
+                
                 axes[2].plot(peakTime, spike_df["width"] * 1e3, "k", linewidth=1.0)
                 axes[2].plot(peakTime, spike_df["width"] * 1e3, "g.")
                 axes[2].set_xlabel("Time (S)")
                 axes[2].set_ylabel("Spike width (mS)")
-                xlim_range = axes[0].get_xlim()
+                
                 axes[2].grid("on")
-                axes[2].set_xlim([xlim_range[0], xlim_range[-1]])
+                xlim_range = axes[0].get_xlim()
+                axes[2].set_xlim([xlim_range[0], xextent])
 
                 plt3 = mplWidget.figure.add_subplot(gs[1, 1])
                 axes.append(plt3)
@@ -6796,12 +7360,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 axes[3].grid("on")
                 axes[3].set_xlabel("Time (S)")
                 axes[3].set_ylabel("Peak voltage (mv)")
-                axes[3].set_xlim([xlim_range[0], xlim_range[-1]])
+                xlim_range = axes[0].get_xlim()
+                axes[3].set_xlim([xlim_range[0], xextent])
             else:
                 axes[0].legend(["dv/dt", "v"])
 
             mplWidget.draw()
-            #                    print(c)
             mplWidget.figure.tight_layout()
 
         if plotWidget2 != None:
@@ -6965,7 +7529,7 @@ class MainWindow(QtWidgets.QMainWindow):
         traceInfo = {"Recording mode": RECORDMODE[modeIdx]}
         return traceInfo
 
-    def bandPass_signal(self, data, highCutOff=None, lowCutOff=None, useButter=False):
+    def bandPass_signal(self, data, highCutOff=None, lowCutOff=None, useButter=False, fs=None):
         if self.globalSettings.p.getValues()["data preprocessing"][1][
             "Apply Notch filter"
         ][0]:
@@ -6978,7 +7542,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if (
             self.parameters["filter_option"] == 0 and useButter == False
         ):  ## default fourth order Bessel-Thomson filter
-            self.Bessel_lowpass(highCutOff, None, lowCutOff)
+            self.Bessel_lowpass(highCutOff, fs, lowCutOff)
             f = signal.sosfiltfilt(self.parameters["bessel_filter_sos"], f)
         else:  ## Butter
             self.butter_bandpass(highCutOff, lowCutOff, order=2)
@@ -7132,7 +7696,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )  ## format dataframe for using in QtTable wiget
             self.splitViewTab_morph.tables["Summary"].appendData(df)
             self.splitViewTab_morph.tables["Summary"].show()
-
+    
     def getNeutriteColors(self, neutriteColors, hex=False):
         ''' from Qcolor to rgb or hex color
         rgb: True: rgb color, False: hex color
@@ -7153,8 +7717,110 @@ class MainWindow(QtWidgets.QMainWindow):
             colors = np.array([apColors,bdColors, axonColors, somaColors])/255 ## [0,1]
         return colors
 
+    def update_dendrogram(self):
+        fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " Dendrogram").getFigure()
+        fig.clf()
+        ax = fig.add_subplot(111)
+        ax.cla()
+        plot_dendrogram(self.neuronMorph, ax= ax, show_diameters=True)
+
+    def morph_measure_event(self, param, changes):
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")
+        step_size=pv['Parameters'][1]['Bin size (um)'][0]
+        anlge_step_size=pv['Parameters'][1]['Angle bin (degree)'][0]*np.pi/180
+        smoothBins= pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
+        smoothStandardDeviation = pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
+        useFullRange=pv['Figure options'][1]['Use full range for density plot'][0]
+        showColorBar=pv['Figure options'][1]['Show color bar for density plot'][0]
+        showAxisVal=pv['Figure options'][1]['Show axis for density plot'][0]
+        customAxiRange=pv['Figure options'][1]["Custom axis range"][1]
+        customRange_plane_activate = customAxiRange['plane density'][1]['activate'][0]
+        plOps = customAxiRange['plane density'][1]
+        customRange_planeAxisOptions = [customRange_plane_activate, plOps['X min'][0], 
+        plOps['X max'][0],plOps['Y min'][0],plOps['Y max'][0]]
+        customRange_polar_activate = customAxiRange['polar density'][1]['activate'][0]
+        customRange_polarAxisOptions = [customRange_polar_activate, customAxiRange['polar density'][1]['R max'][0]]
+        showgrid = pv['Figure options'][1]['Show grid'][0]
+        cmap = pv['Figure options'][1]['Color map'][0]
+        pvm = self.splitViewTab_morph.getParTreePars("Measurments")
+        for param, change, data in changes:
+            childName = param.name()
+            if childName in ["Sholl analysis"]:
+                self.update_sholl(step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                # self.currentAnMorphView = childName
+            elif childName == "Dendrogram":
+                self.update_dendrogram()
+            elif childName in ["X axis density"]:
+                self.update_density('x',step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                # self.currentAnMorphView = childName
+            elif childName in ["Y axis density"]:
+                self.update_density('y',step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation)
+                # self.currentAnMorphView = childName
+            elif childName in ["XY plane density"]:
+                self.update_2D_density(step_size=step_size, useFullRange=useFullRange,
+                showColorbar=showColorBar, showAxisValues=showAxisVal,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation, cmap=cmap)
+                # self.currentAnMorphView = childName
+            elif childName in ["XY polar density", "R max"]:
+                self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size,
+                 axiOps = customRange_polarAxisOptions, showgrid=showgrid, cmap = cmap)
+                # self.currentAnMorphView = childName
+            elif childName in ["Features",'Make histogram']:
+                feature = pvm['Measurement'][1]["Feature histograms"][1]['Features'][0]
+                self.update_featureHistogram(feature)
+            elif childName == "Update cell names":
+                self.updateInterCellDistance()
+            elif childName in ['Distance function', "Compute barcode"]:
+                distFunc = pvm['Measurement'][1]["Persistent barcode"][1]['Distance function'][0]
+                self.drawBarcode(distFunc)
+            elif childName == "Distance to Pia":
+                self.measureDist2Pia()
+            elif childName == "Path length histogram":
+                self.update_pathLengthHistogram()
+            elif childName == "Apical dendrite stem directionality histogram":
+                self.update_ad_stem_directionality_histogram()
+            elif childName == "Close all floating windows":
+                self.MatPlotWindows = []
+                GCollector.collect()
+
+    def morph_export_event(self, param, changes):
+        pve = self.splitViewTab_morph.getParTreePars("Export")
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")
+        step_size=pv['Parameters'][1]['Bin size (um)'][0]
+        anlge_step_size=pv['Parameters'][1]['Angle bin (degree)'][0]*np.pi/180
+        smoothBins= pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
+        smoothStandardDeviation = pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
+        useFullRange=pv['Figure options'][1]['Use full range for density plot'][0]
+        for param, change, data in changes:
+            childName = param.name()
+            if childName == "Export High resolution figure":
+                dpi = pve["Export Morphology"][1]["DPI"][0]
+                format = pve["Export Morphology"][1]["Format"][0]
+                self.saveHighResFigure(dpi, format)
+            elif childName == 'Save to disk':
+                linearProjection = pve['Export Morphology density'][1]['linear projections'][0]
+                xyPlane = pve['Export Morphology density'][1]['xy cartesian'][0]
+                xyPoloar = pve['Export Morphology density'][1]['xy polar'][0]
+                savedResults = ""
+                if linearProjection:
+                    saveLinearProjectionDensity(self.neuronMorph, step_size=step_size,smoothBins=smoothBins,
+                smoothStandardDeviation=smoothStandardDeviation, neuronName=self.currentMorphTreeFile[:-4])
+                    ## message box to notifiy the user that the file is saved
+                    savedResults+="linear projection (x axis, yaxis)\n "
+                if xyPlane:
+                    save2DPlaneDensity(self.neuronMorph, step_size,  useFullRange, smoothBins,
+                smoothStandardDeviation,  neuronName=self.currentMorphTreeFile[:-4])
+                    savedResults+="2D plane density\n "
+                if xyPoloar:
+                    save2DPolarDensity()
+                    savedResults+="2D polar density\n "
+                self.showdialog(f"{self.currentMorphTreeFile[:-4]} saved!", savedResults)
+
     def morph_analysis_event(self, param, changes):
-        pv = self.splitViewTab_morph.getParTreePars("Analysis")
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")
         step_size=pv['Parameters'][1]['Bin size (um)'][0]
         anlge_step_size=pv['Parameters'][1]['Angle bin (degree)'][0]*np.pi/180
         smoothBins= pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
@@ -7173,6 +7839,8 @@ class MainWindow(QtWidgets.QMainWindow):
         showgrid = pv['Figure options'][1]['Show grid'][0]
         cmap = pv['Figure options'][1]['Color map'][0]
         neutriteColors = pv['Figure options'][1]['Neutrites color'][1]
+        morphorOnly = pv['Figure options'][1]['Morphology only'][0]
+        showTitle = pv['Figure options'][1]['Show title'][0]
         for param, change, data in changes:
             childName = param.name()
             if childName == "Figure aesthetics":
@@ -7181,82 +7849,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 fname = cleanASCfile(
                     self.currentMorphTreeFile
                 )  ## to clean not-wanted sections
-                self.updateTreeMorphView(fname, redraw=True)
+                self.updateTreeMorphView(fname, redraw=True,morphorOnly=morphorOnly, showTitle=showTitle)
                 if fname[-8:] == "_mod.ASC":
                     os.remove(fname)
-            if childName in ["Basal dendrite", "Apical dendrite", "Axon", "Soma"]:
+            if childName in ["Basal dendrite", "Apical dendrite", "Axon", "Soma","Morphology only", "Show title"]:
                 colors = self.getNeutriteColors(neutriteColors, hex=False)
                 for idx, k in enumerate(self.NeutriteColors):
                     if idx == len(colors):
                         break
                     self.NeutriteColors[k] = colors[idx]
-                self.updateTreeMorphView(self.currentMorphTreeFile, redraw=True)
-            if childName in ["Rotate tree (degree)", "Bin size (um)", "Gaussian window size (num. bins)",
-             "Std of Gaussian kernel (num. bins)", "Angle bin (degree)", "Use full range for density plot",
-             "Show color bar for density plot", "Show axis for density plot","Figure aesthetics", "Color map",
-             "Basal dendtrite", "Apical dendtrite", "Axon", "Soma"]:
-                if self.currentAnMorphView!="":
-                    childName = self.currentAnMorphView
-            if childName in ["Sholl analysis"]:
-                self.update_sholl(step_size=step_size,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation)
-                self.currentAnMorphView = childName
-            if childName in ["X axis density"]:
-                self.update_density('x',step_size=step_size,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation)
-                self.currentAnMorphView = childName
-            if childName in ["Y axis density"]:
-                self.update_density('y',step_size=step_size,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation)
-                self.currentAnMorphView = childName
-            if childName in ["XY plane density"]:
-                self.update_2D_density(step_size=step_size, useFullRange=useFullRange,
-                showColorbar=showColorBar, showAxisValues=showAxisVal,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation, cmap=cmap)
-                self.currentAnMorphView = childName
-            if childName in ["XY polar density", "R max"]:
-                self.update_2D_polar_density(step_size=step_size, angle_step = anlge_step_size,
-                 axiOps = customRange_polarAxisOptions, showgrid=showgrid, cmap = cmap)
-                self.currentAnMorphView = childName
-            if childName == '1D histograms':
-                self.update_morphPyFig()
-            if childName == "Update cell names":
-                self.updateInterCellDistance()
-            if childName in ['Distance function', "Compute barcode"]:
-                distFunc = pv['Measurement'][1]["Persistent barcode"][1]['Distance function'][0]
-                self.drawBarcode(distFunc)
-            elif childName == "Distance to Pia":
-                self.measureDist2Pia()
-            elif childName == "Export High resolution figure":
-                dpi = pv["Export Morphology"][1]["DPI"][0]
-                format = pv["Export Morphology"][1]["Format"][0]
-                # treeOnly = pv["Save options"][1]['Save tree only'][0]
-                # figsize = pv["Save options"][1]["Size"][0]
-                # fig = self.splitViewTab_morph.matplotViews["2D"].getFigure()
-                self.saveHighResFigure(dpi, format)
-            elif childName == 'Save to disk':
-                linearProjection = pv['Export Morphology density'][1]['linear projections'][0]
-                xyPlane = pv['Export Morphology density'][1]['xy cartesian'][0]
-                xyPoloar = pv['Export Morphology density'][1]['xy polar'][0]
-                savedResults = ""
-                if linearProjection:
-                    saveLinearProjectionDensity(self.neuronMorph, step_size=step_size,smoothBins=smoothBins,
-                smoothStandardDeviation=smoothStandardDeviation, neuronName=self.currentMorphTreeFile[:-4])
-                    ## message box to notifiy the user that the file is saved
-                    savedResults+="linear projection (x axis, yaxis)\n "
-                if xyPlane:
-                    save2DPlaneDensity(self.neuronMorph, step_size,  useFullRange, smoothBins,
-                smoothStandardDeviation,  neuronName=self.currentMorphTreeFile[:-4])
-                    savedResults+="2D plane density\n "
-                if xyPoloar:
-                    save2DPolarDensity()
-                    savedResults+="2D polar density\n "
-                self.showdialog(f"{self.currentMorphTreeFile[:-4]} saved!", savedResults)
+                self.updateTreeMorphView(self.currentMorphTreeFile, redraw=True,morphorOnly=morphorOnly, showTitle=showTitle)
 
     def drawBarcode(self, distanceFunc):
-        if self.morphPy_N is not None:
+        if (not hasattr(self, "morphPy_N")) or  self.morphPy_N is None:
+            self.update_mpfeatures(False)
+        else:
             df = getPersistanceBarcode(self.morphPy_N , distanceFunc)
-            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile+ " persistent diagrams",
+            fig = self.makeNewMatPlotWindow(title=self.currentMorphTreeFile.split('\\')[-1]+ " persistent diagrams",
             size=(15,10)).getFigure()
             fig.clf()
             ax1 = fig.add_subplot(121)
@@ -7288,14 +7897,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # for idx, ax in enumerate(fig.axes):
         #     if idx >0:
         #         fig.delaxes(ax)
-        pv = self.splitViewTab_morph.getParTreePars("Analysis")
+        pv = self.splitViewTab_morph.getParTreePars("Parameters")
+        pve = self.splitViewTab_morph.getParTreePars("Export")
         DiameterScaling = pv["Parameters"][1]["Diameter scaling"][0]
         rotateAngle = pv["Parameters"][1]["Rotate tree (degree)"][0]
         step_size=pv['Parameters'][1]['Bin size (um)'][0]
         smoothBins=pv['Parameters'][1]['Gaussian window size (num. bins)'][0]
         smoothStandardDeviation=pv['Parameters'][1]['Std of Gaussian kernel (num. bins)'][0]
         drawContour = pv["Figure options"][1]["Draw contour"][0]
-        axisVisible = pv["Export Morphology"][1]["Axis visible"][0]
+        axisVisible = pve["Export Morphology"][1]["Axis visible"][0]
         if format!="emf":
             ## recreate a new figure
             matWin = MatplotView(size=(8,6))
@@ -7338,8 +7948,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.splitViewTab_FP.tables["Sweep features"].clear()
                 self.splitViewTab_FP.tables["Spike features"].clear()
                 self.splitViewTab_FP.tables["Cell features"].clear()
-
-            if childName == "Save all tables":
+            elif childName == "line color":
+                if self.currentPulseTree.filetype == ".nwb":
+                    sel = self.currentPulseTree.selectedItems()[0]
+                    self.plt = []  ## plot handles
+                    self.plotItemList = []  ## collect all plot handles
+                    self.trace_view.clear()  ## refresh the layout
+                    self.plotSingleSeries_NWB(sel)
+            elif childName == "Save all tables":
                 seriesName = (
                     self.splitViewTab_FP.tables["Cell features"].item(0, 0).value
                 )

@@ -32,7 +32,7 @@ class FileModel(pg.QtWidgets.QFileSystemModel):
         )
 
         # filter out non dats and disable showing
-        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC","*.swc"])
+        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC","*.nwb"])
         self.setNameFilterDisables(False)
 
         # set root
@@ -228,7 +228,7 @@ class FileView(pg.QtWidgets.QTreeView):
         #        os.chdir(self.frame.root)
         # check extension
         _, ext = os.path.splitext(file_path)
-        if ext in ['.asc','.ASC', '.swc']:
+        if ext in ['.asc','.ASC']:
             self.frame.prepareTree(file_path)
         else:
             self.frame.clearAllTrees()
@@ -634,6 +634,70 @@ class PulView(pg.QtWidgets.QTreeWidget):
                 for i in range(len(node.children)):
                     self.update_tree_recursive(item, index + [i], dat_index)
 
+    def update_withNWB_sweepTable(self, root_item):
+        # this deal with a single sweep group
+        r = self.pvEphy # set pvNWB instance as root
+        nwb = r.nwbfile
+        self.filetype = ".nwb"
+        node = r
+        if node == None:
+            return
+        sessionNode = QTreeWidgetItem(['Recordings' , ''])
+        sessionNode.index = [0]
+        sessionNode.setExpanded(True)
+        root_item.addChild(sessionNode)
+        for idx, pvg in enumerate(self.pvEphy.getSweepGroups()):
+            swGrps = pvg.patchview_sweeps # labeled dict with sweep name as key
+            swp_names = sorted(swGrps.keys())
+            groupName = swGrps[swp_names[0]].stimulus_name
+            stim_type = swGrps[swp_names[0]].stimulus_type
+            grpNode = QTreeWidgetItem([groupName , stim_type+'. N='+str(len(swp_names))])
+            grpNode.index = [0,idx]
+            grpNode.setExpanded(True)
+            sessionNode.addChild(grpNode)
+            for idx, swg_name in enumerate(swp_names): # sweep level
+                swg_g = swGrps[swg_name]
+                sweep_index = swg_g.sweep_index #; original table index
+                traceIdx = swg_g.trace_indexes # this is a list of sweep indices (int), last one is trace index
+                tracelabels = swg_g.trace_labels # this is a list of sweep indices (int)
+                sweepGrpNode = QTreeWidgetItem([swg_g.name, ''])
+                sweepGrpNode.index = [0, 0, sweep_index]
+                sweepGrpNode.setExpanded(True)
+                grpNode.addChild(sweepGrpNode)
+                for idx, s in enumerate(traceIdx):
+                    sweepNode = QTreeWidgetItem(['trace '+str(s+1), tracelabels[idx]])
+                    sweepNode.index = [0, 0, sweep_index, idx] ## the last index is the sweep index in the sweep table
+                    sweepGrpNode.addChild(sweepNode)
+
+    def update_withNWB_sweepTable_namedtuple(self, root_item):
+            """parse pvNWB's sweepGroups (a named tuple) and add items into the GUI tree to allow browsing.
+            """
+            r = self.pvEphy # set pvNWB instance as root
+            nwb = r.nwbfile
+            self.filetype = ".nwb"
+            node = r
+            if node == None:
+                return
+            swGrps = self.pvEphy.sweepGroups._fields # differnt data structure
+            for bidx, g in enumerate(swGrps):
+                g_children = getattr(self.pvEphy.sweepGroups, g) # sweep groups
+                if len(g_children) == 0:
+                    continue
+                grpNode = QTreeWidgetItem([g, str(len(g_children))])
+                grpNode.index = [bidx]
+                grpNode.setExpanded(True)
+                root_item.addChild(grpNode)
+                for swgIdx, swg_g in enumerate(g_children._fields): # sweep level
+                    sweepIdx = g_children[swgIdx] # this is a list of sweep indices (int)
+                    sweepGrpNode = QTreeWidgetItem([swg_g, 'N='+str(len(sweepIdx))])
+                    sweepGrpNode.index = [bidx, swgIdx]
+                    sweepGrpNode.setExpanded(True)
+                    grpNode.addChild(sweepGrpNode)
+                    for s in sweepIdx:
+                        sweepNode = QTreeWidgetItem(['Sweep '+ str(s),''])
+                        sweepNode.index = [bidx, swgIdx, s] ## the last index is the sweep index in the sweep table
+                        sweepGrpNode.addChild(sweepNode)
+ 
     def update_ABFtree(self, root_item):
         """read information from the Axon ABF file using neo.AxonIO interface
         and add items into the GUI tree to allow browsing.
@@ -660,7 +724,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
             + "_v"
             + str(metaInfo["fFileVersionNumber"])
         )  # abfVersion
-        abfNode = pg.QtGui.QTreeWidgetItem([node_type, node_label])
+        abfNode = QTreeWidgetItem([node_type, node_label])
         root_item.addChild(abfNode)
         root_item.setExpanded(True)
         abfNode.node = r
@@ -669,12 +733,12 @@ class PulView(pg.QtWidgets.QTreeWidget):
         self.abfBlocks = r.read()  # read the entire file > a list of Blocks
         ## block level
         for b in range(nBlock):
-            block = pg.QtGui.QTreeWidgetItem(["Block", str(b + 1)])
+            block = QTreeWidgetItem(["Block", str(b + 1)])
             block.setExpanded(True)
             block.index = [0, b]
             abfNode.addChild(block)
             for seg in range(nSegments[b]):
-                segment = pg.QtGui.QTreeWidgetItem(["Sweep" + str(seg + 1), ""])
+                segment = QTreeWidgetItem(["Sweep" + str(seg + 1), ""])
                 segment.setExpanded(True)
                 segment.index = [0, b, seg]
                 block.addChild(segment)
@@ -966,7 +1030,6 @@ class MatplotView(MatplotlibWidget.MatplotlibWidget):
         super(MatplotView, self).__init__(size=size, dpi=dpi)
         self.setParent(parent)
         self.figure = self.getFigure()
-        self.setWindowTitle(title)
         self.clf()
 
     def subplots(self, nrow, ncol):

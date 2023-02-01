@@ -61,7 +61,6 @@ class extraEphys(object):
                 x[1]["amplitude"]
             )  ## we are using the relative current. As the ephys_extrator assume baseline current is zero pA)  ## pA
         self.current = current_amp
-        print(current_amp)
         self.current0_index = np.argsort(np.abs(current_amp))[0]
         self.current_step = np.diff(current_amp)[0]  ## assume constant step
         self.Vholding = x[1]["Vholding"]  ## holding current

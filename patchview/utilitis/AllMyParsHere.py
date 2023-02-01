@@ -40,6 +40,12 @@ params = [
                 "default": 3,
                 "step": 1,
             },
+            {
+                "name": "NWB sweep table grouping",
+                "type": "list",
+                "values": ["pvNWB", "dandiNWB","Custom"],
+                "value": "pvNWB",
+            },
         ],
     },
     {
@@ -234,6 +240,7 @@ fp_analysis_spikeDetection = [
                 "default": 1.5,
                 "step": 0.1,
             },
+            {"name": "line color", "type": "color", "value": "g"},
         ],
     },
     {
@@ -932,10 +939,11 @@ event_detection_helps = [
     },
 ]
 
-Morphor_analysis = [
+Morphor_parameters = [
     {
         "name": "Parameters",
         "type": "group",
+        "expanded": True,
         "children": [
             {
                 "name": "Scale bar length",
@@ -1000,13 +1008,14 @@ Morphor_analysis = [
     {
         "name": "Figure options",
         "type": "group",
-        'expanded':True,
+        "expanded": False,
         "children": [
             {"name": "Figure aesthetics", "type": "list",
                 "values": ["whitegrid", "darkgrid", "white", "dark", "ticks"],
                 "value": "whitegrid"},
             {
             "name": "Neutrites color",
+            "expanded": False,
             "type": "group",
             "children": [
             {"name": "Basal dendrite", "type": "color", "value": "g"},
@@ -1017,6 +1026,8 @@ Morphor_analysis = [
             {"name": "Soma", "type": "color", "value": "r"},
             ],
             },
+            {"name": "Morphology only", "type": "bool", "value": True},
+            {"name": "Show title", "type": "bool", "value": False},
             {"name": "Use full range for density plot", "type": "bool", "value": True},
             {"name": "Show color bar for density plot", "type": "bool", "value": True},
             {"name": "Show grid", "type": "bool", "value": True},
@@ -1039,31 +1050,51 @@ Morphor_analysis = [
                 },
             ],
             },
-            {"name": "Close all floating windows", "type": "action"},
         ]
-    },
+    }
+]
+
+Morphor_measurments = [
     {
         "name": "Measurement",
         "type": "group",
+        "expanded": True,
         "children": [
             {"name": "Sholl analysis", "type": "action"},
+            {"name": "Dendrogram", "type": "action"},
             {"name": "X axis density", "type": "action"},
             {"name": "Y axis density", "type": "action"},
             {"name": "XY plane density", "type": "action"},
             {"name": "XY polar density", "type": "action"},
-            {"name": "1D histograms", "type": "action"},
-            {"name": "Distance to Pia", "type": "action"},
+            {"name": "Path length histogram", "type": "action"},
+            {"name": "Apical dendrite stem directionality histogram", "type": "action"},
             {"name": "Persistent barcode", "type": "group",
              "children": [
                 {"name": "Distance function", "type": "list",
                  "values": ['radial_distance','height','path_length','branch_order'], 'value': 'radial_distance'},
                 {"name": "Compute barcode", "type": "action"},
-                ]},
+                ]
+            },
+            {"name": "Feature histograms", "type": "group",
+             "children": [
+                {"name": "Features", "type": "list",
+                 "values": ['branch_order', 'strahler_order', 
+                    'branch_angle', 'path_angle', 'root_angle', 
+                    'thickness', 'segment_length', 'path_length', 'radial_dist'],
+                  'value': 'radial_distance'},
+                {"name": "Make histogram", "type": "action"},
+                ]
+             },
+            {"name": "Distance to Pia", "type": "action"},    
+            {"name": "Close all floating windows", "type": "action"},
         ]
     },
+]
+Morphor_export = [
     {
         "name": "Export Morphology",
         "type": "group",
+        "expanded": True,
         "children": [
             {
                 "name": "DPI",
@@ -1087,6 +1118,7 @@ Morphor_analysis = [
     {
         "name": "Export Morphology density",
         "type": "group",
+        "expanded": False,
         "children": [
             {"name": "linear projections", "type": "bool", "value": True},
             {"name": "xy cartesian", "type": "bool", "value": True},

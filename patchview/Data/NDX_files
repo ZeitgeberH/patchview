@@ -1,0 +1,9 @@
+namespaces:
+- doc: Extension for use in Xiaolong Jiang Lab
+  name: XiaolongJiangLab
+  schema:
+  - namespace: core
+    neurodata_types:
+    - NWBDataInterface
+  - source: XiaolongJiangLab.extensions.yaml
+  version: 0.1.0

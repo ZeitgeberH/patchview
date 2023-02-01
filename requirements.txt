@@ -16,7 +16,7 @@ neo
 pylru==1.2.1
 h5py==3.7.0
 joblib
-future==0.18.2
+future>=0.18.3
 pyYAML
 python-dateutil
 seaborn

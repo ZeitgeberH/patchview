@@ -8,7 +8,15 @@ from patchview.HekaIO import HEKA_Reader_MAIN as HEKA
 import os
 import numpy as np
 
-
+RECORDMODE = [
+    "In out",
+    "On Cell",
+    "Out Out",
+    "Whole cell",
+    "C-Clamp",
+    "------",
+    "------",
+]
 class HekaBundleInfo(object):
     """
     A helpr class wrap aound HEKA reader
@@ -154,6 +162,14 @@ class HekaBundleInfo(object):
             )
             idx[-1] = 0
         return self.bundle.data[idx]
+
+    def getTraceRecordingMode(self, idx:list[int, int, int, int]):
+        assert len(idx) == 4, "trace index need to be a list of 4 integers"
+        trace = self.bundle.pul[idx[0]][idx[1]][idx[2]][idx[3]]
+        modeIdx = int.from_bytes(
+            trace.RecordingMode, byteorder=self.bundle.endian
+        ) 
+        return RECORDMODE[modeIdx]
 
     def getTraceUnit(self, idx):
         print("Not implemented!")

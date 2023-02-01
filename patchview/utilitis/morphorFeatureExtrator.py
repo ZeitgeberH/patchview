@@ -293,6 +293,194 @@ def dendrites_dispersion_index(ad_min, ad_max, angles):
     else:
         return np.nan
 
+# def createMorphorTree(n):
+#     '''creat a parameter tree object from a neuroM object '''
+
+
+
+def getApicalDendriteTrunkAngle(n):
+    '''Get the trunk length of the apical dendrite'''
+    a = morphor_nm.features.morphology.trunk_origin_elevations(n,
+     neurite_type=NeuriteType.apical_dendrite,)[0]*180/np.pi
+    print('trunk angle: ',a)
+    return a
+
+def cirVars(pts):
+    '''calculate circularity variables for a set of points'''
+    xs = 0
+    ys = 0
+    N = len(pts)
+    for p in pts:
+        p /= np.linalg.norm(p)
+        xs+=p[0]
+        ys+=p[1]
+    xs = xs/N
+    ys = ys/N
+    return np.sqrt(xs**2+ys**2)
+
+def resamplingPathPoints(section, pathStep = 10):
+    sectionLen = morphor_nm.features.section.section_length(section)
+    nFractions = int(sectionLen/pathStep) # number of sampling points
+    if nFractions < 3:
+        return section.points
+    fractions = np.linspace(0,1,nFractions)
+    # pmiddle, lengthOffset = morphor_nm.features.section.locate_segment_position(section, 0.5)  ## segment length are not equal
+    # ls = morphor_nm.features.section.section_length(section)
+    # slens = morphor_nm.features.section.segment_lengths(section)
+    fracPts = [mm.path_fraction_point(section.points, c) for c in fractions]
+    return fracPts
+
+def termPathLength(morph, neuriteType=None, verbose=False):
+    ''' path length for all terminal nodes'''
+    leafNodes = []
+    leafPathLength = []
+    filter = lambda n : n.type == neuriteType
+    for s in morphor_nm.iter_sections(morph, neurite_filter=filter):
+        if s.is_leaf: ## if it is a leaf
+            pathLength = morphor_nm.features.section.section_path_length(s)
+            leafNodes.append(s)
+            leafPathLength.append(pathLength)
+    return leafNodes, leafPathLength
+
+def longestPathLeafNode(morph, neuriteType=None,verbose=False):
+    '''for all leave nodes, find the one that has the longest path back to soma'''
+    leafNodes, leafPathL = termPathLength(morph, neuriteType=neuriteType, verbose=verbose)
+    if len(leafNodes)==0:
+        return None, None
+    maxPathID = np.argmax(leafPathL)
+    maxPathLeaf = leafNodes[maxPathID]
+    maxPath = leafPathL[maxPathID]
+    if verbose:
+        print('Type filter ', neuriteType, ' longest path leaf node: ', maxPathLeaf, ' path length: ', maxPath, ' um')
+    return maxPathLeaf, maxPath
+
+def neurite_root_range(neurite, min_length_filter=None, max_length_filter=150):
+    points = neurite.root_node.points
+    interval_lengths = mm.interval_lengths(points)
+    path_lengths = np.insert(np.cumsum(interval_lengths), 0, 0)
+    valid_pts = np.ones(len(path_lengths), dtype=bool)
+    if min_length_filter is not None:
+        valid_pts = (valid_pts & (path_lengths >= min_length_filter))
+        if not valid_pts.any():
+            warnings.warn(
+                "In 'trunk_origin_radii': the 'min_length_filter' value is greater than the "
+                "path distance of the last point of the last section so the radius of this "
+                "point is returned."
+            )
+            return points[-1, :]
+    if max_length_filter is not None:
+        valid_max = (path_lengths <= max_length_filter)
+        valid_pts = (valid_pts & valid_max)
+        if not valid_pts.any():
+            warnings.warn(
+                "In 'trunk_origin_radii': the 'min_length_filter' and 'max_length_filter' "
+                "values excluded all the points of the section so the radius of the first "
+                "point after the 'min_length_filter' path distance is returned."
+            )
+            # pylint: disable=invalid-unary-operand-type
+            return points[~valid_max, :][0]
+    return points[valid_pts, :]
+
+def section_meander_angles_resampled(section,  pathStep=5, xy=True):
+    """resampling with equal length along the path"""
+    fracPts = resamplingPathPoints(section, pathStep)
+    if len(fracPts) < 3: ## that is a line!
+        return []
+    else:
+        if xy:
+            return [mm.angle_3points(fracPts[i - 1][:2], fracPts[i - 2][:2], fracPts[i][:2])
+                for i in range(2, len(fracPts))]
+        else:
+            return [mm.angle_3points(fracPts[i - 1], fracPts[i - 2], fracPts[i])
+            for i in range(2, len(fracPts))]           
+
+def resampleNeurite(sectionList,min_length_filter=None, max_length_filter=150,pathStep = 10):
+    neuritePts = []
+    borders = []
+    if min_length_filter is None:
+        min_length_filter = 0
+    for s in sectionList:
+        plength = morphor_nm.features.section.section_path_length(s)
+        border = morphor_nm.features.section.branch_order(s)
+        if plength <= max_length_filter and plength >= min_length_filter:
+            neuritePts.extend(resamplingPathPoints(s, pathStep))
+            borders.extend([border]*len(neuritePts))
+    return neuritePts,borders
+
+def getApicalDendriteStemPathAngles(n,min_length_filter=None, max_length_filter=150):
+    if min_length_filter is None:
+        min_length_filter = 0
+    maxPathLeaf, _ = longestPathLeafNode(n, NeuriteType.apical_dendrite, verbose=False)
+    sectionList = [n for n in maxPathLeaf.iupstream()] # collect nodes back to soma
+    ps, _ = resampleNeurite(sectionList, min_length_filter=5, max_length_filter=150, pathStep = 10)
+    if len(ps) > 3:
+        return [mm.angle_3points(ps[i - 1][:2], ps[i - 2][:2], ps[i][:2])
+                    for i in range(2, len(ps))]
+    else:
+        return []
+
+def getApicalDendriteDirectionConsistency(n, min_length_filter=None, max_length_filter=150):
+    mangles = getApicalDendriteStemPathAngles(n,min_length_filter=min_length_filter, max_length_filter= max_length_filter)
+    if len(mangles)==0:
+        return np.nan
+    ad = [np.abs(np.sin(a+np.pi)) for a in mangles]
+    return ad
+        
+
+def getApicalDendriteTortuosity(n, min_length_filter=None, max_length_filter=150):
+    '''Get the tortuosity of the apical dendrite'''
+    # tortuositys = [morphor_nm.features.section.section_tortuosity(s) for s in morphor_nm.iter_sections(n, 
+    # neurite_filter=tree_type_checker(NeuriteType.apical_dendrite))]
+    if min_length_filter is None:
+        min_length_filter = 0
+    secLength = 0
+    c = 0
+    lastSec = None
+    pts = []
+    for s in morphor_nm.iter_sections(n, neurite_filter=tree_type_checker(NeuriteType.apical_dendrite)):
+        plength = morphor_nm.features.section.section_path_length(s)
+        if plength <= max_length_filter and plength >= min_length_filter:
+            secLength+=plength
+            c+=1
+            pts.append(s.points)
+        else:
+            lastSec = s
+            break
+    radial_distance = morphor_nm.features.section.section_radial_distance(lastSec, n.soma.center)
+    tortuosity =  secLength /radial_distance 
+    # print('tort: ',tortuosity, 'c=',c)
+    return tortuosity, pts
+
+def getApicalDendriteInitRadius(n, min_length_filter=None, max_length_filter=10):
+    '''Get the initial radius of the apical dendrite'''
+    initRadius =  morphor_nm.features.morphology.trunk_origin_radii(n,min_length_filter=min_length_filter,
+     max_length_filter=max_length_filter,
+     neurite_type=NeuriteType.apical_dendrite)
+    if len(initRadius)>1:
+        # print('radius', len(initRadius))
+        initRadius = np.max(initRadius)
+    else:
+        initRadius = initRadius[0]
+    # print('init Radius max:', initRadius)
+    return initRadius
+
+def getApicalDendriteFeatures(n):
+    fs = ['trunk tortuosity','trunk angle', "trunk init radius","trunk cvs global mean"]
+    fs =['APD '+x for x in fs]
+    apdFeatures = {}
+    apdFeatures[fs[0]],_ = getApicalDendriteTortuosity(n)
+    apdFeatures[fs[1]] = getApicalDendriteTrunkAngle(n) ## only one trunk angle
+    apdFeatures[fs[2]] = getApicalDendriteInitRadius(n)
+    cvs = getApicalDendriteDirectionConsistency(n)
+    if len(cvs) > 0 :
+        # print(f'Section meander angles changes: len={len(cvs)}, mean={np.mean(cvs)}, max={np.max(cvs)}' )
+        apdFeatures[fs[3]] = np.mean(cvs)
+        apdFeatures['APD trunk cvs global max'] = np.max(cvs)
+    else:
+        apdFeatures[fs[3]] = np.nan
+        apdFeatures['APD trunk cvs global max'] = np.nan
+    return apdFeatures
+
 def extractMorphFeatures(n, df_summary=None):
     ''' return a dictionary contains useful morphor features
     n: NeuroM Neuron object
@@ -301,6 +489,12 @@ def extractMorphFeatures(n, df_summary=None):
         df_summary = {}
     maxDia, soma_center, soma_radius, soma_avgRadius = getSomaStats(n)
     df_summary["Neuron id"] = n.name
+    try:
+        apdFeatures = getApicalDendriteFeatures(n)
+        for k in apdFeatures:
+            df_summary[k] = apdFeatures[k]
+    except:
+        print('no apical dendrite features')
     df_summary["center X"] = soma_center[0]
     df_summary["center Y"] = soma_center[1]
     df_summary["center Z"] = soma_center[2]
@@ -328,6 +522,12 @@ def extractMorphFeatures(n, df_summary=None):
         df_summary['soma aspect_ratio'] = np.nan
     df_summary['cell max_radial_dist'] = features.morphology.max_radial_distance(n)
     df_summary['total number of neurites'] = len(n.neurites)
+    for nt in [NeuriteType.basal_dendrite, NeuriteType.apical_dendrite, NeuriteType.axon]:
+        _, df_summary[nt.name+'_longthest path']  = longestPathLeafNode(n, neuriteType=nt)
+            # neurite features
+    neurite_funcs = [total_neurite_length,total_neurite_volume,total_neurite_area,\
+        total_neurite_area,total_bifurcation_points,
+        max_branch_order]
     if len(n.neurites) > 0:
         for neurite in n.neurites:
             nsections = features.morphology.number_of_sections_per_neurite(n, neurite.type)
@@ -338,25 +538,22 @@ def extractMorphFeatures(n, df_summary=None):
             neurite_filter=tree_type_checker(neurite.type))]
             df_summary[neutriteName+ '_avg_tortuosity'] = np.mean(tortuositys)
             df_summary[neutriteName+ '_max_tortuosity'] = np.max(tortuositys)
-            if len(nsections) > 1 :
-                for i in range(len(nsections)):
-                    df_summary[neutriteName+ ' seg'+str(i+1)+' Nsec'] = nsections[i]
-                    df_summary[neutriteName+ ' seg'+str(i+1)+' trunkLen'] = neuriteTrunkLength[i] # stem length
-                
-            else:
-                df_summary[neutriteName+' Nsec'] = nsections[0]
-                df_summary[neutriteName+' trunkLen'] = neuriteTrunkLength[0] # stem length
-        # neurite features
-        neurite_funcs = [total_neurite_length,total_neurite_volume,total_neurite_area,\
-            total_neurite_area,total_bifurcation_points,
-            max_branch_order]
         for f in neurite_funcs:
             df_summary[f.__doc__] = f(n)
+    else:
+        for neurite in n.neurites:
+            neutriteName = str(neurite.type).split('.')[-1]
+            df_summary[neutriteName+ ' Nseg'] = np.nan
+            df_summary[neutriteName+ '_avg_tortuosity'] =  np.nan
+            df_summary[neutriteName+ '_max_tortuosity'] =  np.nan
+        for f in neurite_funcs:
+            df_summary[f.__doc__] = np.nan
 
     admin, admax, angles = min_max_trunk_angle(n)
     df_summary['trunk angle min'] = admin
     df_summary['trunk angle max'] = admax
     df_summary['trunk angle dispersion index'] = dendrites_dispersion_index(admin, admax, angles)
+
     return df_summary
 
 def getRandomNeuronName():
@@ -435,12 +632,15 @@ def save2DPlaneDensity(neuronMorph, step_size=5,  useFullRange=True, smoothBins=
 def save2DPolarDensity():
     pass
 
-def getMorphopyFeatures(tree):
+def getMorphopyFeatures(tree, stats=False):
     '''https://github.com/berenslab/MorphoPy/blob/master/notebooks/MORPHOPY%20Tutorial.ipynb'''
     tree.remove_unifurcations()
     tree.write('temp.swc')
     N = fm.load_swc_file('temp.swc')
-    morph_wide = compute_morphometric_statistics(N)
+    if stats:
+        morph_wide = compute_morphometric_statistics(N)
+    else:
+        morph_wide = ''
     return morph_wide, N
 
 def getPersistanceBarcode(N, f):
