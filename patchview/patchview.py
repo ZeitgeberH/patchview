@@ -3420,21 +3420,35 @@ class MainWindow(QtWidgets.QMainWindow):
             "Source code & issue reporting:\n https://github.com/ZeitgeberH/patchview \n\nDocumentation:\n https://patchview.readthedocs.io/en/latest/index.html",
         )
 
-    def makeNWBobject(self):
+    def makeNWBobject(self, dataSourceFormat):
         selected = self.currentPulseTree.selectedItems()
         traceIdex_selected = sorted(self.currentPulseTree.selectedTraceIndex)
-        pv_ephy = dat2NWB(self.currentPulseTree.dat_file) # a pvEphy object
-        sweepIdx = []
-        for sel in selected:
-            selIdx = sel.index
-            if len(selIdx) == 2: # series level
-                seriesNode = getAllChildIndexFromItem(sel)
-                for c in seriesNode: # sweep level
-                    sweepIdx.append(c.index) #
-            elif len(selIdx) == 3: # sweep level
-                sweepIdx.append(selIdx)
-        pv_ephy.loadProtocols('patchview') 
-        pv_ephy.AddSweeps(sweepIndex=sorted(sweepIdx), traceIndex=traceIdex_selected)               
+        sweepIdx = [] # list of sweep numbers. 
+        if dataSourceFormat in [".dat",".abf"]: # for now. would switch to NWB very soon!
+            for sel in selected: ## selection may be complicated (cross-level etc.)
+                selIdx = sel.index
+                if len(selIdx) == 2: # series level
+                    seriesNode = getAllChildIndexFromItem(sel)
+                    for c in seriesNode: # sweep level
+                        sweepIdx.append(c.index) #
+                elif len(selIdx) == 3: # sweep level
+                    sweepIdx.append(selIdx)
+            pv_ephy = dat2NWB(self.currentPulseTree.dat_file) # a pvEphy object
+            pv_ephy.loadProtocols('patchview') 
+            pv_ephy.AddSweeps(sweepIndex = sweepIdx, traceIndex=traceIdex_selected)
+            print(dataSourceFormat, 'selected', traceIdex_selected)
+        else: # save a portion of sweeps from current NWB file
+            pv_ephy = pvNWB() # a pvEphy object.
+            src = self.currentPulseTree.pvEphy.nwbfile
+            for sel in selected:
+                selIdx = sel.index
+                if len(selIdx) == 2: # series level
+                    seriesNode = getAllChildIndexFromItem(sel)
+                    for c in seriesNode: # sweep level
+                        sweepIdx.append(c.index[2]) #
+                elif len(selIdx) == 3: # sweep level
+                    sweepIdx.append(selIdx[2])
+            pv_ephy.nwbfile = pv_ephy.copy_sweeps(src = src, sweep_table_index=sorted(sweepIdx))
         return pv_ephy
 
     def getSaveFileNameNWB(self):
@@ -3453,21 +3467,22 @@ class MainWindow(QtWidgets.QMainWindow):
         '''
         fileName = self.getSaveFileNameNWB()
         pvNWB = None
+
         if fileName !='':
             ext = self.currentPulseTree.fileSourceFormat
-            if ext in [".dat",".abf"]:
-                pvNWB = self.makeNWBobject()
-            elif ext in ['.nwb']:
-                pvNWB = self.currentPulseTree.pvEphy
-        if hasattr(self.currentPulseTree, 'pvEphy'):
-            if hasattr(self.currentPulseTree.pvEphy, 'io'): # has io handle
-                self.currentPulseTree.pvEphy.io.close() ## close the file before saving
-            self.currentPulseTree.pvEphy = None # reset the handle
-            GCollector.collect() # force garbage collection
+            pvNWB = self.makeNWBobject(ext)
+
         if pvNWB is not None:
             self.statusBar.showMessage(" " + fileName, 3000)
             pvNWB.saveNWB(fileName)
-            self.currentPulseTree.pvEphy = pvNWB
+            # self.currentPulseTree.pvEphy = pvNWB
+
+        # if hasattr(self.currentPulseTree, 'pvEphy'):
+        #     if hasattr(self.currentPulseTree.pvEphy, 'io'): # has io handle
+        #         self.currentPulseTree.pvEphy.io.close() ## close the file before saving
+        #     self.currentPulseTree.pvEphy = None # reset the handle
+        #     GCollector.collect() # force garbage collection
+
 
     def exit_clicked(self):
         self.reset() ## this should destroy all handles
@@ -4106,20 +4121,28 @@ class MainWindow(QtWidgets.QMainWindow):
             time, data = self.extractSingleSeries_ABF(sel.index)
             stimInfo = self.currentPulseTree.abf_stimInfo
         elif self.currentPulseTree.fileSourceFormat  == ".nwb":
-            time, data, srate = self.prepareVoltageNDarray_NWB(sel)
-            fpChanIdx = 0 # need a generic way to address this
+            time, stim, data, metaInfo = self.prepareVoltageNDarray_NWB(sel)
+            # swGps = self.currentPulseTree.pvEphy.getSweepGroups()
+            sweepGroupKey = self.currentPulseTree.pvEphy.sweepGroupNames[sel.index[1]] # which sweep group
+            nSweeps = len(self.currentPulseTree.pvEphy.sweepGroups[sweepGroupKey])
+            self.currentPulseTree.selectedTraceIndex
+            if len(self.currentPulseTree.selectedTraceIndex) > 0:
+                fpChanIdx = self.currentPulseTree.selectedTraceIndex[0] # need a generic way to address this
+            else:
+                fpChanIdx = 0
             data = np.squeeze(data[:,:,fpChanIdx])
-            # data = data.T ## in mV
-            print('ephy data shape: ', data.shape)
+            srate = metaInfo['recording_rate']
             stimInfo = []
-            for i in range(data.shape[1]):
+            for i in range(nSweeps):
+                swpMetaInfo = self.currentPulseTree.pvEphy.getMetaInfoFromSweepGroups(sweepGroupKey, i, False)
                 stimInfo.append([{},{}])
-                stimInfo[i][1]["start"] = 1.0*srate
-                stimInfo[i][1]["end"] = 2.0*srate
+                stimInfo[i][1]["start"] = swpMetaInfo['stimulus_onset'] *srate
+                stimInfo[i][1]["end"] = swpMetaInfo['stimulus_offset']*srate
                 stimInfo[i][1]["sampleInteval"] = 1/srate
-                stimInfo[i][1]["amplitude"] = -110.0+ i*20.0
-                stimInfo[i][1]["Vholding"] = 0
-            title = self.currentPulseTree.pvEphy.nwbfile.session_id
+                stimInfo[i][1]["amplitude"] = swpMetaInfo['stimulus_amplitude']
+                stimInfo[i][1]["Vholding"] = swpMetaInfo['stimulus_holding_amplitude']
+            
+            title = self.currentPulseTree.pvEphy.nwbfile.identifier + "_" + sweepGroupKey
         (
             dv_cutoff1,
             min_height1,
@@ -4146,7 +4169,7 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_interval=baseline_interval1,
             baseline_detect_thresh=baseline_detect_thresh1,
         )
-
+        
         # fileName = self.currentPulseTree.dat_file[:-4]+'_Series' + str(sel.index[1]+1) + '_'+ sel.node.Label+'_PvSpikeFeatures.pdf'
         self.plot_splitter.setStretchFactor(1, 3)
         self.topPlot_splitter.setStretchFactor(1, 1)
@@ -4167,18 +4190,30 @@ class MainWindow(QtWidgets.QMainWindow):
             cellFeature[n]  = 0
             cellFeature[n]  = cellFeature[n].astype('object')
             cellFeature.at[0,n] = list(sw[n].values)
+        try:
+            self.updateEphyTable(
+                cellFeature,
+                self.splitViewTab_FP.tables["Cell features"],
+            )
+        except Exception as e:
+            print('cell feature erro', e)
+            return
 
-        self.updateEphyTable(
-            cellFeature,
-            self.splitViewTab_FP.tables["Cell features"],
-        )
         spike_df = self.moveSweepCountFront(self.EphyFeaturesObj.df, "sweepCurrent")
         spike_df = self.moveSweepCountFront(spike_df, "sweepCount")
-        self.updateEphyTable(spike_df, self.splitViewTab_FP.tables["Spike features"])
+        try:
+            self.updateEphyTable(spike_df, self.splitViewTab_FP.tables["Spike features"])
+        except Exception as e:
+            print('spike feature erro', e)
+            return
         sw = self.EphyFeaturesObj.df_related_features.copy()
         sw = self.moveSweepCountFront(sw, "current")
         sw.insert(loc=0, column="sweepCount", value=np.arange(1, len(sw) + 1))
-        self.updateEphyTable(sw, self.splitViewTab_FP.tables["Sweep features"])
+        try:
+            self.updateEphyTable(sw, self.splitViewTab_FP.tables["Sweep features"])
+        except Exception as e:
+            print('sweep feature erro', e)
+            return
         self.splitViewTab_FP.bottomLeft_tabview.setCurrentIndex(1)
         return 1
 
@@ -5914,8 +5949,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     sel.setExpanded(True)
                     for c in children: # shrink all siblings
                         c.setExpanded(False)
-                    sweepIdx  = [c.index[2] for c in getAllChildIndexFromItem(sel)]
-                    self.plotSeletedSweeps_NWB(sweepIdx, newAxis=True,chanIdx = self.currentPulseTree.selectedTraceIndex)
+                    sweepTableIndies  = [c.index[2] for c in getAllChildIndexFromItem(sel)]
+                    self.plotSeletedSweeps_NWB(sweepTableIndies, newAxis=True,chanIdx = self.currentPulseTree.selectedTraceIndex)
                 break
 
             if treeLevel == 3:  ##  sweep level: all channels at this sweep
@@ -5949,27 +5984,30 @@ class MainWindow(QtWidgets.QMainWindow):
                         for c in children: # shrink all siblings
                             c.setExpanded(False)
                     self.currentPulseTree.selectedTraceIndex = sorted(list(set(self.currentPulseTree.selectedTraceIndex)))
-                    sweepIdx = [sel.index[2] for sel in selected]
-                    metaInfos = self.plotSeletedSweeps_NWB(sweepIdx, chanIdx = self.currentPulseTree.selectedTraceIndex,
+                    # self.get_patchview_sweep(self.sweepNames[sweep_index])
+                    # swGps = self.currentPulseTree.pvEphy.get_sweepgroup() # all sweep groups
+                    # sweepTableIndies = []
+                    # for sel in selected:
+                    #     swG = swGps[swGps.sweepGroupNames[sel.index[1]]] # sweep group
+                    sweepTableIndies = [sel.index[2] for sel in selected]
+                    metaInfos, stims, resps = self.plotSeletedSweeps_NWB(sweepTableIndies, chanIdx = self.currentPulseTree.selectedTraceIndex,
                     newAxis=True, allSweeps=True) # return list of metaInfo for selected sweeps
                     metaInfo = metaInfos[-1] ## just show the last one
-                    # set parameters
-                    # add sweep level data on top of the file level data
-                    self.addNWB_metaIinfo() ## we will need to reset the metaInfo before adding new
-                    data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
-                    self.parameter_Tab.appendData(data)
+                    self.addNWB_metaIinfo(metaInfo) ## we will need to reset the metaInfo before adding new
                     if getSpikeFeature:
-                        self.plot_splitter.setStretchFactor(0, 1)
-                        self.plot_splitter.setStretchFactor(1, 1)
-                        self.trace_view2.show()
-                        self.plot_alignedSpikes_SingleTrace(
-                            sel.index[2], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
-                        )
+                        print('to be implemented in  plot_alignedSpikes_SingleTrace_NWB')
+                        ## in  plot_alignedSpikes_SingleTrace_NWB
+                        # self.plot_splitter.setStretchFactor(0, 1)
+                        # self.plot_splitter.setStretchFactor(1, 1)
+                        # self.trace_view2.show()
+                        # self.plot_alignedSpikes_SingleTrace(
+                        #     sel.index[2], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
+                        # )
                     break
                 else:
                     print("File type not supported yet!")
                     break
-            if treeLevel == 4:  ##  trace level: all sweeps, all channels
+            if treeLevel == 4:  ##  trace level:  all channels
                 if not (sel.index[3] in self.currentPulseTree.selectedTraceIndex): # avoid duplicated
                     self.currentPulseTree.selectedTraceIndex.append(sel.index[3])
                 if self.currentPulseTree.filetype == ".dat":
@@ -6013,33 +6051,38 @@ class MainWindow(QtWidgets.QMainWindow):
                         newAxis=True
                     else:
                         newAxis=False
-                    metaInfos = self.plotSeletedSweeps_NWB(sweepIdx, chanIdx=[sel.index[3]],newAxis=newAxis) # return list of metaInfo for selected sweeps
+                    metaInfos, stims, resps = self.plotSeletedSweeps_NWB(sweepIdx, chanIdx=[sel.index[3]], newAxis=newAxis) # return list of metaInfo for selected sweeps
                     metaInfo = metaInfos[-1] ## just show the last one
                     # set parameters
                     # add sweep level data on top of the file level data
                     self.addNWB_metaIinfo() ## we will need to reset the metaInfo before adding new
-                    data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
-                    self.parameter_Tab.appendData(data)
+                    meta_data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
+                    self.parameter_Tab.appendData(meta_data)
                     if getSpikeFeature:
-                        self.plot_splitter.setStretchFactor(0, 1)
-                        self.plot_splitter.setStretchFactor(1, 1)
-                        self.trace_view2.show()
-                        self.plot_alignedSpikes_SingleTrace(
-                            sel.index[3], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
-                        )
+                        print('to be implemented in plot_alignedSpikes_SingleTrace_NWB')
+                        # self.plot_splitter.setStretchFactor(0, 1)
+                        # self.plot_splitter.setStretchFactor(1, 1)
+                        # self.trace_view2.show()
+                        # self.plot_alignedSpikes_SingleTrace(
+                        #     sel.index[3], mplWidget=self.spikes_view, plotWidget2=self.trace_view2
+                        # )
         selTip = self.currentPulseTree.dat_file+'. Selected trace index: '
         selTip +=', #'.join([str(x+1) for x in self.currentPulseTree.selectedTraceIndex])
         self.QtFileNameLabel.setText(selTip)
         if self.plotItemList:  ## update mouse mode if not empty
             self.setViewboxMouseMode()
 
-    def addNWB_metaIinfo(self):
+    def addNWB_metaIinfo(self, metaInfo=None):
         '''add file level metainformation to the parameter table
         metainfo is a dictionary from pvEphy class'''
-        metaInfo = self.currentPulseTree.pvEphy.metaInfo._asdict()
-        data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
-        self.parameter_Tab.clear()
-        self.parameter_Tab.setData(data)
+        try:
+            if metaInfo is None:
+                metaInfo = self.currentPulseTree.pvEphy.metaInfo._asdict() # tree level metaInfo   
+            data = np.array([(k, metaInfo[k]) for k in metaInfo],dtype=[("Parameter", object), ("Value", object)])
+            self.parameter_Tab.clear()
+            self.parameter_Tab.setData(data)
+        except Exception as e:
+            print(e)
 
     def plotSingleStimTrace(self, plt, index, myPen):
         """only at series level!"""
@@ -6442,6 +6485,7 @@ class MainWindow(QtWidgets.QMainWindow):
             sweepIdx = [sweepIdx[i] for i in sIdx if i < nSweep]
 
         stims = []
+        resps = []
         metaInfos = []
         # selIdx = sel.index.copy()
         allPens = []
@@ -6455,6 +6499,7 @@ class MainWindow(QtWidgets.QMainWindow):
             allPens.append(myPen)
             stim, resp, metaInfo = self.currentPulseTree.pvEphy.getSweepData(sweepIdx_)
             stims.append(stim)
+            resps.append(resp)
             metaInfos.append(metaInfo)
             self.plotSingleSweep_NWB(
                 plotHandle,
@@ -6496,8 +6541,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.trace_view.ci.layout.setRowStretchFactor(0, 3)
             self.trace_view.ci.layout.setRowStretchFactor(1, 1)
             plotHandle.setLabel("bottom", "", units="")
-        return metaInfos
-
+        return metaInfos,stims,resps
 
     def plotSingleTrace_ABF(
         self,
@@ -7049,15 +7093,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 minSample = len(response[0])
             resps.append(response) ##
         nChan = len(response)
-        srate = metaInfo["recording_rate"]
-        t = np.linspace(0, minSample / srate, minSample)
+        t = np.linspace(0, minSample/metaInfo["recording_rate"], minSample)
         data = np.array(resps)
         if len(data.shape) == 4:
             data = data [:,0,:,:] # squeeze. sweep, np.newaxis, time, channel
         else:
             data = data[:,0,:,np.newaxis] # squeeze. sweep, np.newaxis, time, channel
         data = np.swapaxes(data, 0, 1)[:minSample]  # time, sweep, channel
-        return t, data, srate
+        return t, stim, data, metaInfo
 
     def getSingleTraceFeature_NWB(self, sweepTableIndex, sweepIdx):
         self.updateUserParamters()
@@ -7195,6 +7238,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 + str(v_spike.shape[1])
             )
         return plt
+    def plot_alignedSpikes_SingleTrace_NWB(self, stim, data):
+        ## TODO: make use of cached analysis data
+        pass
 
     def plot_alignedSpikes_SingleTrace(
         self,
@@ -7252,12 +7298,12 @@ class MainWindow(QtWidgets.QMainWindow):
             sweepNumber = traceIdx[2]
         elif self.currentPulseTree.fileSourceFormat  == ".nwb":
             sel = self.currentPulseTree.selectedItems()[0]
-            grpIndex = sel.index[0]
-            swGpIndex = sel.index[1]
+            # grpIndex = sel.index[0]
+            # swGpIndex = sel.index[1]
             sweepTableIndex= sel.index[2] # absolute sweep number in sweep table
-            sweepNumber = sweepTableIndex
-            swpList = list(self.currentPulseTree.pvEphy.sweepGroups[swGpIndex].patchview_sweeps.keys())
-            numberOfSweep = len(swpList) # sweep group
+            # sweepNumber = sweepTableIndex
+            # swpList = list(self.currentPulseTree.pvEphy.sweepGroups[swGpIndex].patchview_sweeps.keys())
+            # numberOfSweep = len(swpList) # sweep group
             # relativeSweepIndex = swpList.index(f'{sweepTableIndex:03}') # sweep index in sweep group
             try:
                 (t,v,dvdt,
@@ -7273,6 +7319,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 mplWidget.figure.clear()
                 mplWidget.clf()
                 plotWidget2.clear()
+                print('error get spikes for nwb')
                 return
             title = 'sweep ' + str(sweepNumber)
         if len(peaks) == 0:
@@ -7892,7 +7939,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.MatPlotWindows[-1].show()
         return self.MatPlotWindows[-1]
 
-    def saveHighResFigure(self,dpi, format):  
+    def saveHighResFigure(self,dpi, format):
+        if format =='swc': # save as swc
+            self.neuronMorph.remove_unifurcations()
+            self.neuronMorph.write(self.currentMorphTreeFile[:-4]+".swc")
+            # print("SWC file saved!")
+            self.showdialog(f"{self.currentMorphTreeFile[:-4]} saved!")
+            return
         fileName = self.currentMorphTreeFile[:-4]
         # for idx, ax in enumerate(fig.axes):
         #     if idx >0:

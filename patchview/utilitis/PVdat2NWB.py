@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Ref.
 https://pynwb.readthedocs.io/en/stable/tutorials/general/extensions.html
 https://pynwb.readthedocs.io/en/stable/tutorials/domain/icephys.html#sphx-glr-tutorials-domain-icephys-py
 
 ming.hu@bcm.edu
 """
-
+import os
 from pynwb import NWBFile, NWBHDF5IO
 from pynwb.icephys import CurrentClampStimulusSeries, CurrentClampSeries
 from pynwb.file import Subject
@@ -18,7 +19,14 @@ from collections import namedtuple
 from patchview.utilitis.pvNDX_class import PatchviewSweep, PatchviewSweepGroup
 from datetime import datetime
 from dateutil.tz import tzlocal
-
+#TODO:
+'''
+ADD abstract layer for sweep (regardless of clamp mode)
+Use this layer to add all three types: current clamp, voltage clamp, and I=0 clamp
+ADD voltageclamp/voltageclampstimulusseries
+ADD IZeroClampSeries.
+numerically, the only difference between all three are stimulus amplitude and value units.
+'''
 class dat2NWB(pvNWB):
     def __init__(self, datFile, sessionIdx=None, description='intracellular ephys',
     device_name="Heka EPC10_USB Quadro", protocol='patchview', **kw):
@@ -31,22 +39,6 @@ class dat2NWB(pvNWB):
          protocol=protocol,
             **kw
         )
-        """
-        (session_description, identifier, session_start_time, 
-        file_create_date=None, timestamps_reference_time=None,
-        experimenter=None, experiment_description=None, session_id=None,
-        institution=None, keywords=None, notes=None, pharmacology=None,
-        protocol=None, related_publications=None, slices=None,
-        source_script=None, source_script_file_name=None, 
-        data_collection=None, surgery=None, virus=None,
-        stimulus_notes=None, lab=None, acquisition=None,
-        analysis=None, stimulus=None, stimulus_template=None, 
-        epochs=None, epoch_tags=set(), trials=None, invalid_times=None,
-        intervals=None, units=None, processing=None, lab_meta_data=None,
-        electrodes=None, electrode_groups=None, ic_electrodes=None,
-        sweep_table=None, imaging_planes=None, ogen_sites=None, 
-        devices=None, subject=None, scratch=None, icephys_electrodes=None
-        """
         self.sessionIdx = sessionIdx
         self.description = description
         self.device_name = device_name
@@ -80,8 +72,10 @@ class dat2NWB(pvNWB):
         }
         return setFields
 
-    def _initNWB_(self):
-        nwbFields = self._gatherNWBFields()
+    def _initNWB_(self, nwbFields=None):
+        '''Initialize NWB file'''
+        if nwbFields is None:
+            nwbFields = self._gatherNWBFields()
         self.nwbfile = NWBFile(**nwbFields)
         self.device = self.nwbfile.create_device(name=self.device_name)
 
@@ -93,6 +87,7 @@ class dat2NWB(pvNWB):
         Ref: https://pynwb.readthedocs.io/en/stable/pynwb.icephys.html
         IZeroClampSeries: spontaneous current clamp series should use this class
         """
+        self.stimInfo = []
         for j, idx in enumerate(sweepIndex):
             ## TODO: need to work with Ampl file in the .dat file to get the "gain"
             # datSerie = self.pul[idx[0]][idx[1]]
@@ -105,6 +100,7 @@ class dat2NWB(pvNWB):
                 sName = str(j)
             
             stimTime, stimData, stimInfo = self._bundle.stim(idx)
+            self.stimInfo.append(stimInfo)
             ccs = CurrentClampStimulusSeries(
                     name= "sw" + sName,
                     data=np.array(stimData),
@@ -185,18 +181,24 @@ class dat2NWB(pvNWB):
         `sweepGroupName`: name for a new or existing sweep group. TODO: check if a sweepgroup with the same name exist
         `traceIndex`: list of trace index to add. Default, [], all traces available
         '''
-        print('Trace index', traceIndex)
         if not hasattr(self, 'nwbfile') or (self.nwbfile is None): # if nwbfile is not created yet
             self.makeNWBcontainer(sweepIndex)
         # parameters for a typical currentclam series
         currentClamp_init_namedTuple = namedtuple('currentClamp_init_namedTuple',
              'sweep_number, sweepName, data, electrodeObj, srate, gain, label,\
                  bias_current, bridge_balance, capacitance_compensation,starting_time')
-        if sweepGroupName is None: 
-            hashVal = hash(tuple([s2 for s1 in sweepIndex for s2 in s1]))
-            sweepGroupName = '#'+str(hashVal)
-
-        pv_sweep_group = PatchviewSweepGroup(name=sweepGroupName) # sweep group object for patchview. annotation purpose
+        # if sweepGroupName is None: 
+        #     hashVal = hash(tuple([s2 for s1 in sweepIndex for s2 in s1]))
+        #     sweepGroupName = '#'+str(hashVal)
+        swIdx = sweepIndex[0]
+        if sweepGroupName is None:
+            label = self.pul[swIdx[0]][swIdx[1]].Label # parent of current sweep
+            label = label.replace(' ', '_')
+        else:
+            assert isinstance(sweepGroupName, str), f'sweepGroupName should be a string. Got {type(sweepGroupName)}'
+            label = sweepGroupName
+        pv_sweep_group = PatchviewSweepGroup(name=label) # sweep group object for patchview. annotation purpose
+        sweepIndex = sorted(sweepIndex, key=lambda z: (z[1],z[2])) # sort by sweep index of dat file  
         for idx, swIdx in enumerate(sweepIndex):
             datSerie = self.pul[swIdx[0]][swIdx[1]] # parent of current sweep
             serieLabel = 'Series'+str(swIdx[1]+1)+' '+ datSerie.Label
@@ -226,9 +228,16 @@ class dat2NWB(pvNWB):
                 newTrace_index +=1
             # design is wired here. PatchviewSweep sweep_index is not the same as Sweep table index
             # The latter is global indexed, the former is relative to each sweep group.
+            stim_sampleInteval = self.stimInfo[idx][1]["sampleInteval"]
+            stim_onset = self.stimInfo[idx][1]['start']*stim_sampleInteval
+            stim_offset = self.stimInfo[idx][1]['end']*stim_sampleInteval
+            stim_amplitude = self.stimInfo[idx][1]['amplitude']
+            stim_holding = self.stimInfo[idx][1]['Vholding']
             pv_sweep = PatchviewSweep(name=f'{idx:03}', stimulus_type=stimulus_type,  # stimulus_type is protocol-aware. stimulus_name are arbitury
-            stimulus_name=stimulus_name, sweep_index = idx, source_sweep_table_index= swIdx[2],
-                trace_indexes = np.array(trace_indexes), trace_labels=trace_labels)
+            stimulus_name=stimulus_name, local_sweep_index = idx, sweep_table_index= idx, #swIdx[2],
+            stimulus_onset = stim_onset, stimulus_offset = stim_offset, stimulus_amplitude = stim_amplitude, 
+            stimulus_holding_amplitude = stim_holding,
+            trace_indexes = np.array(trace_indexes), trace_labels=trace_labels)
             pv_sweep_group.add_patchview_sweep(pv_sweep)
             eletrodeObj = self.nwbfile.get_ic_electrode(trace_labels[0]) # get the first trace's electrode
             sweepName = serieLabel + '_sw_' + str(swIdx[2])+'_'+ str(t+1)+' traces'
@@ -239,7 +248,8 @@ class dat2NWB(pvNWB):
                 starting_time=0.0)
             self.nwbfile.add_acquisition(self.makeCurrentClampSweep(currentClamp_init),
             use_sweep_table=True)
-        self.addPachviewSweepGroup([pv_sweep_group]) # list of PatchviewSweepGroup
+        gpName = serieLabel.replace(' ', '_')
+        self.addPachviewSweepGroup({gpName: pv_sweep_group}) # list of PatchviewSweepGroup
 
     def getSweepIdx(self, sessionIdx:list[int, int]) -> list[list[int, int, int]]:
         datSerie = self.pul[sessionIdx[0]][sessionIdx[1]]
@@ -251,73 +261,11 @@ class dat2NWB(pvNWB):
         sweepIdx = self.getSweepIdx(sessionIdx) # get all sweeps from a series
         self.AddSweeps(sweepIdx)
         
-    # def defineSweepGroups(self):
-    #     ''' deprecated. use NDX Patchview extension instead'''
-    #     assert hasattr(self, 'nwbfile'), "NWB file is not created yet. Please run makeNWBcontainer() first."
-    #     self.nwbfile.fields.update({'protocol_dict':self.protocol_dict})
-    #     fields = self.protocol_dict.keys() # make three fields in sweep table
-    #     currentClampData = {}  # current clamp
-    #     current_stimType = ['Firing pattern', 'Connection', 'PSP','Custom']
-    #     for k in current_stimType:
-    #         currentClampData[k]  = [] # add key for each current clamp stim type
-    #     voltage_stimType = ['PSC', 'Custom']
-    #     vclampData = {}
-    #     for k in voltage_stimType:
-    #         vclampData[k]  = [] # add key for each current clamp stim type
-    #     customData = {'Custom_recording':[]}
-    #     # # parse sweep table
-    #     for s in range(self.totalNumOfSweeps):
-    #         recording, sti = self.nwbfile.sweep_table.get_series(s)
-    #         rtype = recording.neurodata_type
-    #         if  rtype== 'VoltageClampSeries':
-    #             try:
-    #                 stiDec = self.querySessionProtocolByLabel(sti.name)           
-    #             except:
-    #                 stiDec = 'Custom'
-    #             if stiDec == 'Spontaneous':
-    #                 stiDec = 'PSC'
-    #             vclampData[stiDec].append(s)
-    #         elif rtype == 'CurrentClampSeries':
-    #             try:
-    #                 stiDec = self.querySessionProtocolByLabel(sti.name)           
-    #             except:
-    #                 stiDec = 'Custom'
-    #             currentClampData[stiDec].append(s)               
-    #         elif rtype == 'CurrentClampStimulusSeries':
-    #             print(f'unknown data type:{rtype}')
-    #             customData['Custom_recording'].append(s)
-    #     # make each field's namedtuple
-    #     vclamp_namedtuple = namedtuple('Voltage_clamp', [k.replace(' ','_') for k in vclampData.keys()])
-    #     vclampData = vclamp_namedtuple(*vclampData.values())
-    #     clamp_namedtuple = namedtuple('Current_clamp', [k.replace(' ','_') for k in currentClampData.keys()])
-    #     clampData = clamp_namedtuple(*currentClampData.values())
-    #     custom_namedtuple = namedtuple('Custom_protocol', customData.keys())
-    #     customData_tp = custom_namedtuple(*customData.values())
-    #     # gather all fields's namedtuples
-
-    #     fields = ['voltage_clamp', 'current_clamp', 'custom_protocol']
-    #     fields_data = [vclampData, clampData, customData_tp]
-    #     if customData['Custom_recording']==[]:
-    #         fields.pop()
-    #         fields_data.pop()
-
-    #     self.sweepGroup_def = namedtuple('pvSwgDef', fields,
-    #      defaults=[None]*len(fields), module='Patchview') ## default group
-
-    #     self.sweepGroup = self.sweepGroup_def(*fields_data)
-
 class HekaFileError(Exception):
     """Generic Python-exception-derived object raised by any function."""
     pass
 
 if __name__ == "__main__":
-    import os
-    # _cd_ = os.path.dirname(os.path.abspath(__file__))
-    # os.chdir(_cd_)
-    # testFile = "test_singleFP.dat" 
-    # _FILEPATH = os.path.join('..', '..','tests','data')
-    # test convert dat to nwb
-    # datnwb = dat2NWB(os.path.join(_FILEPATH, testFile), [0,0])
     _FILEPATH  = "D:\\DataDemo"
     # fn = os.path.join(_FILEPATH, "test_singleFP.dat")
     fn = os.path.join(_FILEPATH, "190628", "190628s1c6fp.dat")

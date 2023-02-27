@@ -9,11 +9,11 @@ groups:
     doc: A sweep with one or multiple traces
     quantity: '*'
     attributes:
-    - name: source_sweep_table_index
+    - name: sweep_table_index
       dtype: int
-      doc: index in the source NWB sweep table
+      doc: index in the NWB sweep table. Use this to extract the sweep from NWB file
       required: false
-    - name: sweep_index
+    - name: local_sweep_index
       dtype: int
       doc: local relative index in current sweep group
       required: false
@@ -23,11 +23,27 @@ groups:
       required: false
     - name: stimulus_type
       dtype: text
-      doc: stimulus type
+      doc: stimulus type. Facilitate auto analysis
+      required: false
+    - name: stimulus_onset
+      dtype: float
+      doc: stimulus onset time in seconds
+      required: false
+    - name: stimulus_offset
+      dtype: float
+      doc: stimulus offset time in seconds
+      required: false
+    - name: stimulus_amplitude
+      dtype: float
+      doc: stimulus amplitude
+      required: false
+    - name: stimulus_holding_amplitude
+      dtype: float
+      doc: holding current/voltage amplitude
       required: false
     - name: stimulus_name
       dtype: text
-      doc: custom stimulus name
+      doc: custom human-readable stimulus name
       required: false
     datasets:
     - name: trace_indexes

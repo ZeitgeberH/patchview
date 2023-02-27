@@ -634,8 +634,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
                 for i in range(len(node.children)):
                     self.update_tree_recursive(item, index + [i], dat_index)
 
-    def update_withNWB_sweepTable(self, root_item):
-        # this deal with a single sweep group
+    def update_withNWB_sweepTable(self, root_item, sessionIdx=0):
         r = self.pvEphy # set pvNWB instance as root
         nwb = r.nwbfile
         self.filetype = ".nwb"
@@ -643,30 +642,29 @@ class PulView(pg.QtWidgets.QTreeWidget):
         if node == None:
             return
         sessionNode = QTreeWidgetItem(['Recordings' , ''])
-        sessionNode.index = [0]
+        sessionNode.index = [sessionIdx] # We may add more than one session
         sessionNode.setExpanded(True)
         root_item.addChild(sessionNode)
-        for idx, pvg in enumerate(self.pvEphy.getSweepGroups()):
-            swGrps = pvg.patchview_sweeps # labeled dict with sweep name as key
-            swp_names = sorted(swGrps.keys())
-            groupName = swGrps[swp_names[0]].stimulus_name
-            stim_type = swGrps[swp_names[0]].stimulus_type
-            grpNode = QTreeWidgetItem([groupName , stim_type+'. N='+str(len(swp_names))])
-            grpNode.index = [0,idx]
+        swGrps = r.getSweepGroups() # dict with sweep name as key
+        for gidx, groupName in enumerate(swGrps): # sweep groups level
+            swGp = swGrps[groupName] # one sweep group
+            stim_type = swGp.get_stimulus_type(0)
+            grpNode = QTreeWidgetItem([groupName , stim_type+'. N='+str(len(swGp))])
+            grpNode.index = [sessionIdx, gidx]
             grpNode.setExpanded(True)
             sessionNode.addChild(grpNode)
-            for idx, swg_name in enumerate(swp_names): # sweep level
-                swg_g = swGrps[swg_name]
-                sweep_index = swg_g.sweep_index #; original table index
-                traceIdx = swg_g.trace_indexes # this is a list of sweep indices (int), last one is trace index
-                tracelabels = swg_g.trace_labels # this is a list of sweep indices (int)
-                sweepGrpNode = QTreeWidgetItem([swg_g.name, ''])
-                sweepGrpNode.index = [0, 0, sweep_index]
+            for swp_name in swGp.sweepNames: # sweep level
+                swp = swGp[swp_name]
+                sweep_table_index = swp.sweep_table_index #; sweep group index
+                traceIdx = swp.trace_indexes # this is a list of sweep indices (int), last one is trace index
+                tracelabels = swp.trace_labels # this is a list of sweep indices (int)
+                sweepGrpNode = QTreeWidgetItem([swp.name, ''])
+                sweepGrpNode.index = [sessionIdx, gidx, sweep_table_index]
                 sweepGrpNode.setExpanded(True)
                 grpNode.addChild(sweepGrpNode)
                 for idx, s in enumerate(traceIdx):
                     sweepNode = QTreeWidgetItem(['trace '+str(s+1), tracelabels[idx]])
-                    sweepNode.index = [0, 0, sweep_index, idx] ## the last index is the sweep index in the sweep table
+                    sweepNode.index = [sessionIdx, gidx, sweep_table_index, idx] ## the last index is the sweep index in the sweep table
                     sweepGrpNode.addChild(sweepNode)
 
     def update_withNWB_sweepTable_namedtuple(self, root_item):

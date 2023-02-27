@@ -1108,7 +1108,7 @@ Morphor_export = [
             {
                 "name": "Format",
                 "type": "list",
-                "values": ["emf", "svg","pdf", "eps", "png"],
+                "values": ["emf", "svg","pdf", "eps", "png","swc"],
                 "value": "emf",
             },
             {"name": "Axis visible", "type": "bool", "value": False},
