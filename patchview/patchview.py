@@ -34,6 +34,7 @@ import itertools
 import time as sysTime
 from copy import deepcopy
 import glob
+import pickle
 from patchview.utilitis.linecollection_update import FigureUpdater
 from patchview.utilitis.debugHelpers import debugInfo
 from patchview.utilitis.AnalysisMethods import (
@@ -1762,7 +1763,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         df.to_csv(f, header=True, line_terminator="\n")
 
     def exportFile(self, title=None, defaultName=None, extension="all files (*.*)"):
-        fileName = QtGui.QFileDialog.getSaveFileName(
+        fileName = QtWidgets.QFileDialog.getSaveFileName(
             None, title, defaultName, extension
         )
         if isinstance(fileName, tuple):
@@ -3715,7 +3716,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def saveSingleSeries(self, sel):
         fileName = self.getSaveFileName()
-        import pickle
+        
 
         if fileName != "":
             self.statusBar.showMessage("Saving " + fileName[:-4], 3000)
@@ -4169,7 +4170,8 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_interval=baseline_interval1,
             baseline_detect_thresh=baseline_detect_thresh1,
         )
-        
+        self.ephyFpObjectList = {}
+        self.ephyFpObjectList[self.currentPulseTree.dat_file[:-4]] = self.EphyFeaturesObj
         # fileName = self.currentPulseTree.dat_file[:-4]+'_Series' + str(sel.index[1]+1) + '_'+ sel.node.Label+'_PvSpikeFeatures.pdf'
         self.plot_splitter.setStretchFactor(1, 3)
         self.topPlot_splitter.setStretchFactor(1, 1)
@@ -4529,6 +4531,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def checkFP_action_clicked(self):
         # debugInfo('', True)
+        self.ephyFpObjectList = {}
         self.visulization_view.setCurrentIndex(1)
         (
             bundleFiles,
@@ -4556,7 +4559,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pars = self.splitViewTab_FP.getParTreePars(
             "Data selection"
         )  # self.fpParTree_data_view.p
-
+        
         for file_idx, bundle in enumerate(bundleFiles):
             sel = serieIndex[file_idx]
             stimChanIndex = stimChanLabels[file_idx]
@@ -4633,7 +4636,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )
    
             self.updateEphyTable(sw, self.splitViewTab_FP.tables["Sweep features"], ephObj.title)
-
+            self.ephyFpObjectList[cellName] = ephObj
             print(cellName, "done!")
                 # except:
                 #     print(cellName, 'failed!')
@@ -7238,6 +7241,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 + str(v_spike.shape[1])
             )
         return plt
+    
     def plot_alignedSpikes_SingleTrace_NWB(self, stim, data):
         ## TODO: make use of cached analysis data
         pass
@@ -8037,7 +8041,24 @@ class MainWindow(QtWidgets.QMainWindow):
                                 )
                             )
                     self.showdialog(f"{seriesName} saved!")
+            elif childName == "Aligned spike list":
+                if hasattr(self, "ephyFpObjectList") and len(self.ephyFpObjectList)>0:
+                    df = {}
+                    for ephyFpObject in self.ephyFpObjectList:
+                        eobj = self.ephyFpObjectList[ephyFpObject]
+                        eobj.alignSpikes()
+                        ## convert a dictionary with key as sweep number and value as a list of spike times
+                        ## to a dataframe with columns as sweep number and rows as spike times
+                        df[ephyFpObject] = eobj.spikeList
 
+                    fileName = self.exportFile(
+                            title="Save spike waveforms",
+                            defaultName="Aligned_spike_list.pickle",
+                            extension="Pickle files (*.pickle)",
+                        )
+                    if fileName != []:
+                        with open(fileName, "wb") as fd:
+                            pickle.dump(df, fd)
 def main(app):
     main = MainWindow(app)
     main.mainFrame.show() 

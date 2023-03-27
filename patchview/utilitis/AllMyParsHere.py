@@ -252,7 +252,16 @@ fp_analysis_spikeDetection = [
             {"name": "Save all tables", "type": "action"},
         ],
     },
+    {
+        "name": "Export",
+        "type": "group",
+        "children": [
+            {"name": "Aligned spike list", "type": "action"},
+
+        ],
+    },
 ]
+#self.ephyFpObjectList
 
 fp_analysis_spikeDetection_help = [
     {

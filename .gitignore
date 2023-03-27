@@ -107,6 +107,8 @@ ENV/
 patchview/*~
 patchview/.gitignor~
 patchview/hooks/*
+patchview/build/*
+patchview/dist/*
 .editorconfig
 
 .vscode
