@@ -1,0 +1,7 @@
+Protocols:  ## existing patch protocols and alias from Xiaolong Jiang's lab at BCM
+    Firing pattern: ['FP', 'fp', 'Firing Pattern', 'firing pattern','AllCurrentClamp','ap','ramp',
+    'LongSquareWave']
+    Connection: ['STI', 'Sti', 'Cc', 'cc']  ## check connections
+    Spontaneous: ['EPSP', 'EPSPs','EPSC', 'EPSCs', 'sEPSP','sEPSPs','sEPSC','sEPSCs',
+    'SP','SP_VC', 'SP_CC','Spontaneous Inputs','Spontaneous','sAP']
+    Retina: ['Light_stimulation', 'light stimulation']  ## check light response
