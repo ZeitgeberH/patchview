@@ -32,7 +32,7 @@ class FileModel(pg.QtWidgets.QFileSystemModel):
         )
 
         # filter out non dats and disable showing
-        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC","*.nwb"])
+        self.setNameFilters(["*.dat", "*.abf","*.asc","*.ASC","*.nwb","*.swc"])
         self.setNameFilterDisables(False)
 
         # set root
@@ -228,7 +228,7 @@ class FileView(pg.QtWidgets.QTreeView):
         #        os.chdir(self.frame.root)
         # check extension
         _, ext = os.path.splitext(file_path)
-        if ext in ['.asc','.ASC']:
+        if ext in ['.asc','.ASC','.swc']:
             self.frame.prepareTree(file_path)
         else:
             self.frame.clearAllTrees()

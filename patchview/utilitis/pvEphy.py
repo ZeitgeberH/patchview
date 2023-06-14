@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-A interface for Patchview to access(read/write) on NWBFile.
+An interface for Patchview to access(read/write) on NWBFile.
 ming.hu@bcm.edu
 """
 import os, sys

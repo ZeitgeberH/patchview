@@ -712,7 +712,11 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             drawContour = False
         self.neuronMorph =  None 
-        neurons = morphor_nm.load_morphology(fname, somaType = SomaType.SOMA_CYLINDERS)
+        if fname.endswith('.swc'):
+            somaType = SomaType.SOMA_SINGLE_POINT
+        else:
+            somaType = SomaType.SOMA_CYLINDERS
+        neurons = morphor_nm.load_morphology(fname, somaType = somaType)
         fig2D = self.splitViewTab_morph.matplotViews["2D"].getFigure()
         fig2D.set_dpi(self.parameters["defaultDPI"])
         fig2D.clf()
@@ -1320,7 +1324,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def importTree_clicked(self):        
         dialog = QtWidgets.QFileDialog(self)
         dialog.setWindowTitle("Import Slice image")
-        dialog.setNameFilter("Image files (*.asc *.ASC)")
+        dialog.setNameFilter("Image files (*.asc *.ASC *.swc)")
         if hasattr(self, "cwd"):
             dialog.setDirectory(self.cwd)
         else:
@@ -4153,8 +4157,10 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_detect_thresh1,
             max_interval1,
             filterHighCutFreq_spike,
+            start_latency,
         ) = self.getEphySpikePars()
         ## Here we plug in all the available parameters
+        ##
         self.EphyFeaturesObj = extraEhpys_PV.extraEphys(
             time,
             data,
@@ -4169,6 +4175,7 @@ class MainWindow(QtWidgets.QMainWindow):
             thresh_frac=thresh_frac1,
             baseline_interval=baseline_interval1,
             baseline_detect_thresh=baseline_detect_thresh1,
+            start_latency=start_latency,
         )
         self.ephyFpObjectList = {}
         self.ephyFpObjectList[self.currentPulseTree.dat_file[:-4]] = self.EphyFeaturesObj
@@ -4192,6 +4199,13 @@ class MainWindow(QtWidgets.QMainWindow):
             cellFeature[n]  = 0
             cellFeature[n]  = cellFeature[n].astype('object')
             cellFeature.at[0,n] = list(sw[n].values)
+        # Extract Vholding for the first entry
+        vholding = stimInfo[0][1]['Vholding']
+        # Extract amplitude for all entries
+        amplitudes = [entry[1]['amplitude'] for entry in stimInfo]
+        cellFeature['Vholding'] = vholding
+        cellFeature['Input step'] = np.mean(np.diff(amplitudes))
+        cellFeature['Initial ampltitude'] = amplitudes[0]
         try:
             self.updateEphyTable(
                 cellFeature,
@@ -4203,6 +4217,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         spike_df = self.moveSweepCountFront(self.EphyFeaturesObj.df, "sweepCurrent")
         spike_df = self.moveSweepCountFront(spike_df, "sweepCount")
+
         try:
             self.updateEphyTable(spike_df, self.splitViewTab_FP.tables["Spike features"])
         except Exception as e:
@@ -6853,7 +6868,9 @@ class MainWindow(QtWidgets.QMainWindow):
         baseline_detect_thresh = pv["Spike detection parameters"][1][
             "baseline_detect_thresh (min=-30;max=150)"
         ][0]
-
+        start_latency = pv["Spike detection parameters"][1][
+            "start_latency (min=0.001;max=0.005)"
+        ][0]
         return (
             dv_cutoff,
             min_height,
@@ -6863,6 +6880,7 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_detect_thresh,
             max_interval,
             HF,
+            start_latency,
         )
 
     def getSingleTraceFeature_ABF(self, v, t, seriesIdx):
@@ -7008,6 +7026,7 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_detect_thresh1,
             max_interval1,
             filterHighCutFreq_spike,
+            start_latency
         ) = self.getEphySpikePars()
 
         ## this is to get spike peak.
@@ -7028,6 +7047,7 @@ class MainWindow(QtWidgets.QMainWindow):
             thresh_frac=thresh_frac1,
             baseline_interval=baseline_interval1,
             baseline_detect_thresh=baseline_detect_thresh1,
+            start_latency = start_latency,
         )
         EphysObject.process_spikes()
         spike_df, sweep_df = extract_sweep_feature(t, v, curr, start, end, EphysObject)
@@ -7036,6 +7056,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dvdt1 = np.insert(dvdt, 0, 0)
         if EphysObject._spikes_df.size:
             peaks = spike_df["peak_index"].to_list()  ## lis tof peak index
+            threhold_index = spike_df["threshold_index"].to_list()
             try:
                 maxSPwidth = int(spike_df["width"].max(skipna=True) * sampleRate * 2.5)
             except:
@@ -7068,6 +7089,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 waves_dvdt[:, j] = dvdt1[start_index:end_index]
         else:
             peaks = []
+            threhold_index = []
             waves = []
             waves_dvdt = []
             waveTime = []
@@ -7082,6 +7104,7 @@ class MainWindow(QtWidgets.QMainWindow):
             spike_df,
             end - start,
             dv_cutoff1,
+            threhold_index
         )
 
     def prepareVoltageNDarray_NWB(self, sel):
@@ -7256,6 +7279,7 @@ class MainWindow(QtWidgets.QMainWindow):
         trace=None,
         time=None,
     ):
+        threhold_index = []
         if self.currentPulseTree.fileSourceFormat  == ".abf":
             (
                 t,
@@ -7290,6 +7314,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 spike_df,
                 dur,
                 dv_cutoff,
+                threhold_index,
             ) = self.getSingleTraceFeature(traceIdx)
             title = (
                 self.sliceName[:-4]
@@ -7380,6 +7405,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 axes[0].set_xlim([xlim_range[0], xextent])
                 for p in peaks:
                     axes[0].plot(t[p], v[p], "og", zorder=1)
+                for p in threhold_index:
+                    axes[0].plot(t[p], v[p], "bx", zorder=1)
+                
                 plt1 = mplWidget.figure.add_subplot(gs[0, 1])
                 axes.append(plt1)
                 for j in range(len(peaks)):

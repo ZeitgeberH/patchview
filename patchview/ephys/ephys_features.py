@@ -255,6 +255,7 @@ def refine_threshold_indexes_updated(
     v : numpy array of voltage time series in mV
     t : numpy array of times in seconds
     upstroke_indexes : numpy array of indexes of spike upstrokes (for threshold target calculation)
+    start : start time for threshold calculation (optional, default 0)
     thresh_frac : fraction of average upstroke for threshold calculation (optional, default 0.05)
     filter : cutoff frequency for 4-pole low-pass Bessel filter in kHz (optional, default 10)
     dvdt : pre-calculated time-derivative of voltage (optional)
@@ -284,12 +285,14 @@ def refine_threshold_indexes_updated(
             t, 0.1
         ):  # Too steep depolarisations
             threshold_indexes.append(upstk - np.argmin(dvdt[upstk:upstk_prev:-1]))
+            
             continue
         potential_indexes = np.flatnonzero(dvdt[upstk:upstk_prev:-1] <= target)
         if not potential_indexes.size:
             # couldn't find a matching value for threshold,
             # so just going to the start of the search interval
             threshold_indexes.append(upstk_prev)
+            print('Too steep depolarisation')
         else:
             threshold_indexes.append(upstk - potential_indexes[0])
 
@@ -779,7 +782,6 @@ def find_widths_wrt_threshold(
         widths[missing_widths] = np.nan
 
     return widths
-
 
 def analyze_trough_details(
     v,

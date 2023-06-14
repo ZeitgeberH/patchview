@@ -185,6 +185,16 @@ fp_analysis_spikeDetection = [
                 "tip": "fraction of average upstroke for threshold calculation",
             },
             {
+    
+                "name": "start_latency (min=0.001;max=0.005)",
+                "type": "float",
+                "value": 0.001,
+                "limits": (0.001, 0.005),
+                "step": 0.001,
+                "default": 0.001,
+                "tip": "Mimimum time between stiumulus onset and trheshold crossing",
+            },
+            {
                 "name": "baseline_interval (min=0.05;max=0.15)",
                 "type": "float",
                 "value": 0.1,

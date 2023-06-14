@@ -45,9 +45,11 @@ class extraEphys(object):
         thresh_frac=0.05,
         baseline_interval=0.1,
         baseline_detect_thresh=0.3,
+        start_latency=0.005,
     ):
         self.time = time  ## time in second
         self.data = data * 1000  ## memebrane voltage in unit of mV
+        self.start_latency = start_latency  ## start latency in second
         self.stim_start = (
             stimInfo[0][1]["start"] * stimInfo[0][1]["sampleInteval"]
         )  ## stimuli start
@@ -90,6 +92,7 @@ class extraEphys(object):
             thresh_frac=thresh_frac,
             baseline_interval=baseline_interval,
             baseline_detect_thresh=baseline_detect_thresh,
+            start_latency = start_latency,
         )
         self.Cell_Features = self.get_cell_features()
 
@@ -152,6 +155,7 @@ class extraEphys(object):
         thresh_frac=0.05,
         baseline_interval=0.1,
         baseline_detect_thresh=0.3,
+        start_latency = 0.001,
     ):
         """Analyse the voltage traces and extract information for every spike (returned in df), and information for all the spikes
         per current stimulus magnitude.
@@ -197,6 +201,7 @@ class extraEphys(object):
                     thresh_frac=thresh_frac,
                     baseline_interval=baseline_interval,
                     baseline_detect_thresh=baseline_detect_thresh,
+                    start_latency=start_latency,
                 )
                 EphysObject.process_spikes()
 

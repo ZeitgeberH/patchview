@@ -70,6 +70,7 @@ class EphysSweepFeatureExtractor:
         thresh_frac=0.05,
         baseline_interval=0.1,
         baseline_detect_thresh=0.3,
+        start_latency = 0.001, ## minimal latency for threshold crossing
         id=None,
     ):
         """Initialize SweepFeatures object.
@@ -105,7 +106,7 @@ class EphysSweepFeatureExtractor:
         self.baseline_interval = baseline_interval
         self.baseline_detect_thresh = baseline_detect_thresh
         self.stimulus_amplitude_calculator = None
-
+        self.start_latency = start_latency
         self._sweep_features = {}
         self._affected_by_clipping = []
 
@@ -144,8 +145,13 @@ class EphysSweepFeatureExtractor:
         upstrokes = ft.find_upstroke_indexes(
             v, t, putative_spikes, peaks, self.filter, dvdt
         )
-        thresholds = ft.refine_threshold_indexes(
-            v, t, upstrokes, thresh_frac=self.thresh_frac, filter=self.filter, dvdt=dvdt
+        # thresholds = ft.refine_threshold_indexes(
+        #     v, t, upstrokes, thresh_frac=self.thresh_frac, filter=self.filter, dvdt=dvdt
+        # )
+        if self.start is None:
+            self.start = 0
+        thresholds = ft.refine_threshold_indexes_updated(
+            v, t, upstrokes, start = self.start+self.start_latency, thresh_frac=self.thresh_frac, filter=self.filter, dvdt=dvdt
         )
         thresholds, peaks, upstrokes, clipped = ft.check_thresholds_and_peaks(
             v,

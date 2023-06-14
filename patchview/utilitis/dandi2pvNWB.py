@@ -23,9 +23,14 @@ class dandiNWB(pvNWB):
         fields = ['VoltageClampSeries', 'CurrentClampSeries', 'Custom'] # make three fields in sweep group metainformation
         clampData = {}  # current clamp
         current_stimType = {'C1LSCOARSE150216':'LongSquareWave',
+                            'X1PS':'LongSquareWave',
+                            # 'X2LP':'LongSquareWave',
+                            'X3LP':'LongSquareWave',
+                            
             'C1LSCOARSEMICRO':'LongSquareWave_pre',
-        'C1RP25PR1S141203':'Ramp', 'C1SSCOARSE150112':'ShortPulse',
-            'C1LSFINEST150112':'LongSquare_post'}
+        'C1RP25PR1S141203':'Ramp','X7Ramp':'Ramp',
+          'C1SSCOARSE150112':'ShortPulse','X5SP':'ShortPulse',
+            'C1LSFINEST150112':'LongSquare_post', 'C2SSTRIPLE171103':'PulseSequence'}
         for t in current_stimType.keys():
             clampData[current_stimType[t]]  = [] # add key for each current clamp stim type
         vclampData = {'vclamp':[]} # voltage clamp. to be extended...
@@ -42,16 +47,19 @@ class dandiNWB(pvNWB):
                 vclampData['vclamp'].append(s)
             elif rtype == 'CurrentClampSeries':
                 try:
-                    stiDec = sti.stimulus_description.split('_')[0]            
+                    stiDec = sti.stimulus_description.split('_')[0]
+                    # print(s, sti.stimulus_description.split('_'))       
                 except:
                     stiDec = 'Custom'
                 if stiDec in current_stimType.keys():
                     stimType  = current_stimType[stiDec]
-                if stimType == 'LongSquareWave': ## assume constant step current
-                    minCurrent = np.min([minCurrent, np.min(sti.data[2000:-2000])])
-                    maxCurrent = np.max([maxCurrent, np.max(sti.data[2000:-2000])])
+        
+                    if stimType == 'LongSquareWave': ## assume constant step current
+                        minCurrent = np.min([minCurrent, np.min(sti.data[2000:-2000])])
+                        maxCurrent = np.max([maxCurrent, np.max(sti.data[2000:-2000])])
+     
                     
-                clampData[stimType].append(s)               
+                    clampData[stimType].append(s)               
             else:
                 print(f'unknown data type:{rtype}')
                 customData['custom'].append(s)
