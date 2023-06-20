@@ -26,7 +26,9 @@ class dandiNWB(pvNWB):
                             'X1PS':'LongSquareWave',
                             # 'X2LP':'LongSquareWave',
                             'X3LP':'LongSquareWave',
-                            
+                            'C1LSCOARSE150216_DA_0':'LongSquareWave',
+                            'subthreshold_171_DA_0':'LongSquareWave',
+                            'C1LSFINEST150112_DA_0':'LongSquareWave',
             'C1LSCOARSEMICRO':'LongSquareWave_pre',
         'C1RP25PR1S141203':'Ramp','X7Ramp':'Ramp',
           'C1SSCOARSE150112':'ShortPulse','X5SP':'ShortPulse',

@@ -4136,6 +4136,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 fpChanIdx = 0
             data = np.squeeze(data[:,:,fpChanIdx])
+            print('data shape:', data.shape)
             srate = metaInfo['recording_rate']
             stimInfo = []
             for i in range(nSweeps):

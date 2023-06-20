@@ -284,8 +284,10 @@ def refine_threshold_indexes_updated(
         if upstk_prev == start_index and not upstk_prev == find_time_index(
             t, 0.1
         ):  # Too steep depolarisations
-            threshold_indexes.append(upstk - np.argmin(dvdt[upstk:upstk_prev:-1]))
-            
+            try:
+                threshold_indexes.append(upstk - np.argmin(dvdt[upstk:upstk_prev:-1]))
+            except:
+                threshold_indexes.append(upstk_prev)
             continue
         potential_indexes = np.flatnonzero(dvdt[upstk:upstk_prev:-1] <= target)
         if not potential_indexes.size:

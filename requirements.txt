@@ -28,7 +28,7 @@ pycairo
 scikit-image
 NeuroM @ git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
 dictdiffer @ git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer
+pyemf3 @ git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
 morphio
 scikit-learn
-sklearn
 numpy>=1.22,<1.24

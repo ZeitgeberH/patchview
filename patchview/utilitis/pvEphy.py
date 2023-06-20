@@ -20,7 +20,7 @@ from datetime import datetime
 from dateutil.tz import tzlocal
 
 class pvNWB():
-    def __init__(self, fileName=None, protocol='patchview',  **kw):
+    def __init__(self, fileName=None, protocol=None,  **kw): #protocol='patchview'
         """ base class for Patchview to handle NWB file
         """
         self.nwbfile = None
@@ -56,7 +56,7 @@ class pvNWB():
                 d._in_construct_mode = True
                 d._AbstractContainer__container_source = None
             nwbfile = NWBFile(**reqFields, devices=devices)
-            self.reset_container(nwbfile.subject, nwbfile)
+            cls.reset_container(nwbfile.subject, nwbfile)
             return nwbfile           
         else:
             rqFields = {'session_description': 'no description',
@@ -433,8 +433,8 @@ class pvNWB():
         `keep_original_sweep_number`: bool. If true, use the original sweep number. Otherwise, increment sweep number by 1
         '''       
         for swb in NWB_sweepObjList:
-            self.reset_container(swb, nwbfile)           
-            self.reset_container(swb.electrode.device, nwbfile)
+            cls.reset_container(swb, nwbfile)           
+            cls.reset_container(swb.electrode.device, nwbfile)
             if swb.electrode.name not in nwbfile.ic_electrodes.keys():
                 if swb.electrode.device.name not in nwbfile.devices.keys():
                     device = nwbfile.create_device(name=swb.electrode.device.name,
@@ -476,7 +476,7 @@ class pvNWB():
             dst = pvNWB.make_new_NWBcontainer(src=src)
         dst._check_sweep_table() ## make sure sweep table is created
         swTab_ = src.sweep_table.copy() ## make a copy of the scr sweep table
-        self.reset_container(swTab_, dst) # reset container source and parent
+        cls.reset_container(swTab_, dst) # reset container source and parent
         for s in sweep_table_index: 
             sweep_series = swTab_.get_series(s)
             dst = pvNWB.add_nwb_sweep(dst, sweep_series) 
@@ -530,8 +530,8 @@ if __name__ == "__main__":
     if create_nwb3: # copy a set of sweeps to a new NWB file
         sweep_table_index = [0,1,5]
         nwb2 = pvNWB.make_new_NWBcontainer(src=x.nwbfile)
-        nwb2 = pvNWB.copy_sweeps(x.nwbfile, nwb3, sweep_table_index)
-        print('nwb2 sweeps: ', pvNWB.getNumOfSweeps(nwb3))
+        nwb2 = pvNWB.copy_sweeps(x.nwbfile, nwb2, sweep_table_index)
+        print('nwb2 sweeps: ', pvNWB.getNumOfSweeps(nwb2))
 
         with NWBHDF5IO('copy_nwb2.nwb', 'w') as w_io:
             w_io.write(nwb2)

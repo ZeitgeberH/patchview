@@ -43,7 +43,7 @@ params = [
             {
                 "name": "NWB sweep table grouping",
                 "type": "list",
-                "values": ["pvNWB", "dandiNWB","Custom"],
+                "values": ["pvNWB", "dandiNWB","Generic"],
                 "value": "pvNWB",
             },
         ],
