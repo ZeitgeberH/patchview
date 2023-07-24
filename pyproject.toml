@@ -10,7 +10,7 @@ authors = [
   {name = "Ming Hu"}
 ]
 description = "data analysis and visualization on whole-cell data"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["patch-clamp", "data analysis"]
 classifiers = [
     "Programming Language :: Python :: 3"

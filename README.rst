@@ -4,7 +4,7 @@ PatchView
 .. image:: https://img.shields.io/pypi/v/patchview.svg 
         :target: https://pypi.python.org/pypi/patchview
       
-.. image:: https://img.shields.io/badge/python-3.8%2B-blue
+.. image:: https://img.shields.io/badge/python-3.10%2B-blue
         :target: https://www.python.org/downloads/release/python
         :alt: Python3.8
 

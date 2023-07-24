@@ -99,7 +99,7 @@ MacOS user: Please make sure you have `cairo` installed. You can install it via 
 
 .. code-block:: console
     
-    $ brew install cairo 
+    $ brew install cairo pkg-config
 
 From sources
 ------------
