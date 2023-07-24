@@ -94,6 +94,11 @@ Tested platforms: Windows 10, Ubuntu 18.04 LTS, Mac Catalina.
 Due to Qt requriment, it won't work under WSL2 in Windows 10. 
 With enhanced GUI support on WSL2 in Windows 11, it may work (but not tested yet)
 
+MacOS user: Please make sure you have `cairo` installed. You can install it via `brew`:
+
+.. code-block:: console
+    $ brew install cairo 
+
 From sources
 ------------
 
@@ -123,12 +128,22 @@ then activate the environment and run:
 
     $ conda activate patchviewPy3
     
-    $ pip install -r requirement.txt ## install requirement
+The following three packages should be installed from their github repo:
+
+.. code-block:: console
+
+    $ pip install git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM
+
+    $ pip install git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer
+
+    $ pip install git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
 
 Finally, 
 
 .. code-block:: console
-    
+
+    $ pip install -r requirement.txt ## install requirement
+
     $ pip install -e .
     
 .. _Pyinstaller: https://pyinstaller.org/en/stable/   
