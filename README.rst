@@ -26,7 +26,6 @@ PatchView
 
 .. image:: docs/resources/images/patchview_ads.png
     :width: 800
-    :alt: Alternative text
 
 PatchView perform data analysis and visualization on multi channel whole-cell recording (multi-patch) data, including firing pattern analysis, event analysis,
 synaptic connection detection, morphological analysis and more.

@@ -33,19 +33,20 @@ If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
 
 
-
 If you use conda, you can do this by:
 
 .. code-block:: console
     
-    $  conda create -n patchview python=3.8
+    $  conda create -n patchview python=3.10
 
-Note: PatchView require Python>=3.8
+Note: PatchView requires Python>=3.10
 
 After activating your virtual environment, run this command in your terminal:
 
 .. code-block:: console
 
+    $ pip install git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
+    
     $ pip install patchview
 
 This is the preferred method to install PatchView, as it installs script that can launch
@@ -97,6 +98,7 @@ With enhanced GUI support on WSL2 in Windows 11, it may work (but not tested yet
 MacOS user: Please make sure you have `cairo` installed. You can install it via `brew`:
 
 .. code-block:: console
+    
     $ brew install cairo 
 
 From sources

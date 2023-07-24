@@ -29,7 +29,7 @@ dev_requirements = []
 
 setup(
     author="Ming Hu",
-    author_email='',
+    author_email="hi@gmail.com",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Topic :: Scientific/Engineering :: Information Analysis',
@@ -50,7 +50,8 @@ setup(
     install_requires=requirements,
     extras_require={'dev': dev_requirements},
     license="BSD-3-Clause",
-    long_description=readme + '\n\n' + history,
+    long_description_content_type="text/x-rst",
+    long_description=readme,
     include_package_data=True,
     keywords='patchview',
     name='patchview',
