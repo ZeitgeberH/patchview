@@ -971,10 +971,11 @@ class extraEphys(object):
 
             for j, p in enumerate(peaks):
 
-                start_index = p - before_  # before_
-                end_index = p + after_  # after_
+                start_index = int(p - before_)  # before_
+                end_index = int(p + after_)  # after_
                 # print(start_index, end_index, sweepCount)
                 # print(start_index, end_index, sweepCount)
+            
                 v[:, j] = v_filt[start_index:end_index, sweepCount]
                 dvdt[:, j] = dvdt_filt[start_index:end_index, sweepCount]
             self.spikeList[str(sweepCount)] = v

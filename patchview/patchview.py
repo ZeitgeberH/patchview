@@ -4677,6 +4677,7 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_detect_thresh1,
             max_interval1,
             filterHighCutFreq_spike,
+            start_latency
         ) = self.getEphySpikePars()
         ## Here we plug in all the available parameters
 
@@ -6341,7 +6342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotItemList.append(plotHandle)
         ## loops through all the sweeps.
         nSweep = len(block.segments)
-        if nSweep > 3:  ## no need to plot all of them:
+        if nSweep > 100:  ## no need to plot all of them:
             sweepIdx = [0, int(nSweep / 2), nSweep - 1]
         else:
             sweepIdx = range(nSweep)
@@ -6843,46 +6844,49 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def getEphySpikePars(self):
-        pv = self.splitViewTab_FP.getParTreePars("Spike detection")
-        # This is just to get spikes peaks. Need to use higher cutoff for dvdt-v phase plot
-        HF = pv["Spike detection parameters"][1]["High frequency cutoff"][
-            0
-        ]  # this may different than general filter options
-        dv_cutoff = pv["Spike detection parameters"][1][
-            "dv/dt cut off (min=1;max=100)"
-        ][0]
-        max_interval = pv["Spike detection parameters"][1][
-            "max_interval (min=0.001;max=0.02)"
-        ][0]
-        min_height = pv["Spike detection parameters"][1]["peak height (min=2;max=10)"][
-            0
-        ]
-        min_peak = pv["Spike detection parameters"][1][
-            "peak voltage (min=-30;max=150)"
-        ][0]
-        thresh_frac = pv["Spike detection parameters"][1][
-            "thresh_frac (min=0.02;max=0.08)"
-        ][0]
-        baseline_interval = pv["Spike detection parameters"][1][
-            "baseline_interval (min=0.05;max=0.15)"
-        ][0]
-        baseline_detect_thresh = pv["Spike detection parameters"][1][
-            "baseline_detect_thresh (min=-30;max=150)"
-        ][0]
-        start_latency = pv["Spike detection parameters"][1][
-            "start_latency (min=0.001;max=0.005)"
-        ][0]
-        return (
-            dv_cutoff,
-            min_height,
-            min_peak,
-            thresh_frac,
-            baseline_interval,
-            baseline_detect_thresh,
-            max_interval,
-            HF,
-            start_latency,
-        )
+        try:
+            pv = self.splitViewTab_FP.getParTreePars("Spike detection")
+            # This is just to get spikes peaks. Need to use higher cutoff for dvdt-v phase plot
+            HF = pv["Spike detection parameters"][1]["High frequency cutoff"][
+                0
+            ]  # this may different than general filter options
+            dv_cutoff = pv["Spike detection parameters"][1][
+                "dv/dt cut off (min=1;max=100)"
+            ][0]
+            max_interval = pv["Spike detection parameters"][1][
+                "max_interval (min=0.001;max=0.02)"
+            ][0]
+            min_height = pv["Spike detection parameters"][1]["peak height (min=2;max=10)"][
+                0
+            ]
+            min_peak = pv["Spike detection parameters"][1][
+                "peak voltage (min=-30;max=150)"
+            ][0]
+            thresh_frac = pv["Spike detection parameters"][1][
+                "thresh_frac (min=0.02;max=0.08)"
+            ][0]
+            baseline_interval = pv["Spike detection parameters"][1][
+                "baseline_interval (min=0.05;max=0.15)"
+            ][0]
+            baseline_detect_thresh = pv["Spike detection parameters"][1][
+                "baseline_detect_thresh (min=-30;max=150)"
+            ][0]
+            start_latency = pv["Spike detection parameters"][1][
+                "start_latency (min=0.001;max=0.005)"
+            ][0]
+            return (
+                dv_cutoff,
+                min_height,
+                min_peak,
+                thresh_frac,
+                baseline_interval,
+                baseline_detect_thresh,
+                max_interval,
+                HF,
+                start_latency,
+            )
+        except:
+            return (None,None,None,None,None,None,None,None)
 
     def getSingleTraceFeature_ABF(self, v, t, seriesIdx):
         self.updateUserParamters()
@@ -6913,6 +6917,7 @@ class MainWindow(QtWidgets.QMainWindow):
             baseline_detect_thresh1,
             max_interval1,
             filterHighCutFreq_spike,
+            start_latency,
         ) = self.getEphySpikePars()
 
         ## this is to get spike peak.

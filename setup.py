@@ -65,7 +65,7 @@ setup(
     zip_safe=False,
     entry_points={
         'gui_scripts': [
-            'patchview=patchview:main'
+            'patchview=patchview:pvGUI'
         ],
     },
 )
