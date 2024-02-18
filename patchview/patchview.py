@@ -1,6 +1,7 @@
 """
 Patchviewer by M.H.
 """
+import PyQt5
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem
 from PyQt5.QtWidgets import QSplitter
@@ -6946,7 +6947,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dvdt = ephys_ft.calculate_dvdt(v, t, filterHighCutFreq_signal / 1000)
         dvdt1 = np.insert(dvdt, 0, 0)
         if EphysObject._spikes_df.size:
-            peaks = spike_df["peak_index"].to_list()  ## list of peak index
+            peaks = [int(p_) for p_ in spike_df["peak_index"].to_list()]  ## list of peak index
             try:
                 maxSPwidth = int(spike_df["width"].max(skipna=True) * sampleRate * 2.5)
             except:
@@ -6974,7 +6975,6 @@ class MainWindow(QtWidgets.QMainWindow):
             for j, p in enumerate(peaks):
                 start_index = p - before_
                 end_index = p + after_
-                # print(start_index, end_index, sweepCount)
                 waves[:, j] = v_filtered[start_index:end_index]
                 waves_dvdt[:, j] = dvdt1[start_index:end_index]
         else:
