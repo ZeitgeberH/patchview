@@ -625,16 +625,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.events.eventMarker != None:
                 scatterPlot = self.events.eventMarker
                 penColor = (
-                    scatterPlot.getSpotOpts(scatterPlot.data[lineIdx])[2]
-                    .color()
-                    .getRgb()
+                    scatterPlot.data[lineIdx][-2].pen().color().getRgb()
                 )
                 if penColor[0] > 0:
                     pc = "g"  ## change r to g
                 else:
                     pc = "r"  ## change g to r
-                spotsPen = [scatterPlot.getSpotOpts(yy)[2] for yy in scatterPlot.data]
-                spotsBrush = [scatterPlot.getSpotOpts(yy)[3] for yy in scatterPlot.data]
+                spotsPen = [yy[-2].pen() for yy in scatterPlot.data]
+                spotsBrush = [yy[-2].brush() for yy in scatterPlot.data]
                 spotsPen[lineIdx] = pg.mkPen(pc)
                 spotsBrush[lineIdx] = pg.mkBrush(pc)
                 scatterPlot.setPen(spotsPen)
@@ -2058,9 +2056,12 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         eventMarkers = self.events.eventMarker
         eventPenRvalue = [
-            eventMarkers.getSpotOpts(yy)[2].color().getRgb()[0]
+            # eventMarkers.getSpotOpts(yy)[2].color().getRgb()[0]
+            # eventMarkers.opts[idx]["pen"].color().getRgb()[0]
+            yy[-2].pen.color().getRgb()[0] if yy[-2] else 0
             for yy in eventMarkers.data
         ]  # red is for disabled one
+
         autoType = [
             True if eventPenRvalue[idx] == 0 else False
             for idx, index in enumerate(self.events.peakIndex)
@@ -2706,7 +2707,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.events.isConcat = True
         self.events.traceYUnit = self.currentPulseTree.abf.yUnits
-        if self.events.traceYUnit == "V" or self.events.traceYUnit == "mV":
+        if 'v' in self.events.traceYUnit.lower():
             outlierCutoff_LV = pv["PSP Outliers"][1][
                 "Outlier voltage (mV) - lower bound"
             ][0]
@@ -2714,6 +2715,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Outlier voltage (mV) - upper bound"
             ][0]
             outlierCutoff_rv = pv["PSP Outliers"][1]["replacement value"][0]
+            rmSpks = True
         else:
             outlierCutoff_LV = pv["PSC Outliers"][1][
                 "Outlier voltage (pA) - lower bound"
@@ -2722,6 +2724,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Outlier voltage (pA) - upper bound"
             ][0]
             outlierCutoff_rv = pv["PSC Outliers"][1]["replacement value"][0]
+            rmSpks = False
 
         ## read data
         time, data = self.extractSingleSeries_ABF(series_index)
@@ -2734,19 +2737,19 @@ class MainWindow(QtWidgets.QMainWindow):
             data, highCutOff=hfcut, lowCutOff=lfcut, useButter=True
         )
         time = np.arange(len(data)) / self.parameters["fs"]
-
+        baseline_ = np.mean(data)
         ## remove spiking and/or stimuli artifacts
-        data_ = data.copy()
-        baseline_ = np.mean(data_)
-        std_ = np.std(data_)
-        data_[data > baseline_ + 3 * std_] = baseline_
-        data_[data < baseline_ - 3 * std_] = baseline_
-        baseline_ = np.mean(data_)  ## iterative estamtion of baseline
-        if pv["Spikes"][1]["Removing spikes"][0]:
-            dvdt_th = pv["Spikes"][1]["dv/dt (V/s) - threhold"][0]
-            peaks_lv = self.removeStimulationArtifacts(data.copy(), dvdt_th)
-            for p in peaks_lv:
-                data[p - 20 : p + 20] = baseline_
+        if rmSpks:
+            data_ = data.copy()
+            std_ = np.std(data_)
+            data_[data > baseline_ + 3 * std_] = baseline_
+            data_[data < baseline_ - 3 * std_] = baseline_
+            baseline_ = np.mean(data_)  ## iterative estamtion of baseline
+            if  pv["Spikes"][1]["Removing spikes"][0]:
+                dvdt_th = pv["Spikes"][1]["dv/dt (V/s) - threhold"][0]
+                peaks_lv = self.removeStimulationArtifacts(data.copy(), dvdt_th)
+                for p in peaks_lv:
+                    data[p - 20 : p + 20] = baseline_
 
         currentTrace = pv["Data selection"][1]["Trace"][0] - 1
         self.events.node = []
@@ -2760,7 +2763,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.events.data = data
         mean_data = np.mean(data)
         median_data = np.median(data)
-
+        print(f"mean: {mean_data}, median: {median_data}")
         if outlierCutoff_rv == "bound":
             data[data <= outlierCutoff_LV] = outlierCutoff_LV
             data[data >= outlierCutoff_UV] = outlierCutoff_UV
@@ -3075,8 +3078,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     pc = "g"  # change r to g
                 else:
                     pc = invalidColor  ## change g to r
-                spotsPen = [scatterPlot.getSpotOpts(yy)[2] for yy in scatterPlot.data]
-                spotsBrush = [scatterPlot.getSpotOpts(yy)[3] for yy in scatterPlot.data]
+                print(f"pc, {pc}")
+                spotsPen = [yy[-2].pen() for yy in scatterPlot.data]
+                spotsBrush = [yy[-2].brush() for yy in scatterPlot.data]
                 spotsPen[spots[0].index()] = pg.mkPen(pc)
                 spotsBrush[spots[0].index()] = pg.mkBrush(pc)
                 scatterPlot.setPen(spotsPen)
@@ -3767,6 +3771,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def extractStimData_ABF(self):
         rawP = self.currentPulseTree.abf.read_raw_protocol()
+        print(self.currentPulseTree.abf.yUnits)
         nProtocol = len(rawP[0])  ## should be the same as nSegments for firing pattern.
         stimChanIdx = 0  ## channel index where stimuli is applied to
         stimUnit = rawP[2][stimChanIdx]  ## 'pA'
@@ -3807,7 +3812,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for idx, seg in enumerate(block.segments):  # enumerate(block.segments):
             data[:, idx] = seg.analogsignals[0].transpose()[0]
         time = np.arange(nSamples) / self.parameters["fs"]
-        return time, data / 1000.0  ## convert it back to Volt for downstream analaysis
+        if 'm' in self.currentPulseTree.abf.yUnits.lower():
+            sfactor = 1e3
+        elif 'p' in self.currentPulseTree.abf.yUnits.lower():
+            sfactor = 1e12
+        return time, data/sfactor  ## convert it back to Volt for downstream analaysis
 
     def extractSingleSeries(self, sel):
         """Extract single series (multiple sweep) data"""
@@ -5989,13 +5998,17 @@ class MainWindow(QtWidgets.QMainWindow):
                         .analogsignals[0]
                         .transpose()[0]
                     )
+                    if 'v' in self.currentPulseTree.abf.yUnits.lower():
+                        getSpikes = True
+                    else:
+                        getSpikes = False  ## skip analysing spikes if not voltage
                     self.plotSingleTrace_ABF(
                         plotHandle,
                         segmentIdx,
                         trace,
                         None,
                         highCutOff=None,
-                        analaysisSpike=True,
+                        analaysisSpike=getSpikes,
                     )
                 elif self.currentPulseTree.filetype == ".nwb": # sweep level
                     if len(selected) == 1: # if one sweep is slected.
