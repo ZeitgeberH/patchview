@@ -6348,7 +6348,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             sweepIdx = range(nSweep)
         for idx, sweepIdx_ in enumerate(sweepIdx):  # enumerate(block.segments):
-            myPen = pg.mkPen(color=pg.intColor(idx, hues=3))  ## the pen to draw this
+            myPen = pg.mkPen(color=pg.intColor(idx, hues=len(sweepIdx)))  ## the pen to draw this
             trace = (
                 block.segments[sweepIdx_].analogsignals[0].transpose()[0]
             )  ## numpy array for current sweep  ## get trace meta information
@@ -6377,7 +6377,7 @@ class MainWindow(QtWidgets.QMainWindow):
             plt_stim = self.trace_view.addPlot(col=0, colspan=4)
             for idx, sweep in enumerate(sweepIdx):
                 myPen = pg.mkPen(
-                    color=pg.intColor(idx, hues=3)
+                    color=pg.intColor(idx, hues=len(sweepIdx))
                 )  ## the pen to draw this
                 stim = self.currentPulseTree.abf_stimData[:, sweep]
                 plt_stim.plot(self.currentPulseTree.abf_stimTime, stim, pen=myPen)
