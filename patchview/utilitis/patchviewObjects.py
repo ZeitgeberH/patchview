@@ -740,23 +740,24 @@ class PulView(pg.QtWidgets.QTreeWidget):
                 segment.setExpanded(True)
                 segment.index = [0, b, seg]
                 block.addChild(segment)
-        rawP = r.read_raw_protocol()
-        stimChanIdx = 0  ## channel index where stimuli is applied to
-        if len(rawP[0]) > 0:
-            self.abf_stimOn = True
-            nSamples = len(rawP[0][0][0])
-            stimData = np.zeros((nSamples, nSegments[0]))
-            for j, stim in enumerate(rawP[0]):
-                stimData[:, j] = stim[stimChanIdx]
+        try:
+            rawP = r.read_raw_protocol()
+            stimChanIdx = 0  ## channel index where stimuli is applied to
+            if len(rawP[0]) > 0:
+                self.abf_stimOn = True
+                nSamples = len(rawP[0][0][0])
+                stimData = np.zeros((nSamples, nSegments[0]))
+                for j, stim in enumerate(rawP[0]):
+                    stimData[:, j] = stim[stimChanIdx]
 
-            self.abf_stimData = stimData
-            self.abf_stimTime = np.arange(nSamples) / r.get_signal_sampling_rate()
-            self.abf_stimUnit = rawP[2][stimChanIdx]  ## 'pA'
-        else:
-            self.abf_stimOn = False  ## spontaneous events!
+                self.abf_stimData = stimData
+                self.abf_stimTime = np.arange(nSamples) / r.get_signal_sampling_rate()
+                self.abf_stimUnit = rawP[2][stimChanIdx]  ## 'pA'
+        except:
+            self.abf_stimOn = False
+            self.abf_stimData = None
+            self.abf_stimUnit = None
             print("spontaneous events!")
-            ## evoke event analysis panel automatically here!
-            # self.frame.eventDetectionAction_clicked()
 
     def get_plot_params(self):
         """

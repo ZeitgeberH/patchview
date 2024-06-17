@@ -2436,7 +2436,9 @@ class MainWindow(QtWidgets.QMainWindow):
         x_th = [self.events.time[0], self.events.time[-1]]
         deltD = np.median(np.diff(self.events.data))
         peak_nSD = pv["Peak parameters for raw trace"][1]["Peak Threshold (stdev)"][0]
-        peak_threh = raw_baseline + peak_nSD * np.sign(fitPars[2]) * np.std(data_)
+        peak_threh = raw_baseline + peak_nSD * np.sign(fitPars[3]) * np.std(data_)
+        print(f"sd: {peak_nSD}, pars: {fitPars}")
+        print(f"peak threshold: {peak_threh},{np.sign(fitPars[3])}")
         try:
             p0.removeItem(self.events.threholdLine_raw)  ## removing the old line
         except:
@@ -2452,7 +2454,7 @@ class MainWindow(QtWidgets.QMainWindow):
             pen=pg.mkPen("w", style=QtCore.Qt.DashLine),
         )
         peak_idx, selected_index = fitFuncs.getRawPeaks3(
-            self.events.data, D, peak_onset_idx, peak_threh, np.sign(fitPars[2])
+            self.events.data, D, peak_onset_idx, peak_threh, np.sign(fitPars[3])
         )
         self.events.globalBaseline = raw_baseline
         self.events.peakIndex = peak_idx  ## the actual peak index
@@ -3036,7 +3038,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Waveform post peak duration"
             ][0]
 
-            peak_threh = raw_baseline + peak_nSD * np.sign(fitPars[2]) * np.std(data_)
+            peak_threh = raw_baseline + peak_nSD * np.sign(fitPars[3]) * np.std(data_)
+            print(f"peak threshold: {peak_threh}")
             p0.plot(
                 x_th,
                 [peak_threh, peak_threh + deltD],
@@ -3048,7 +3051,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 pen=pg.mkPen("w", style=QtCore.Qt.DashLine),
             )
             peak_idx, selected_index = fitFuncs.getRawPeaks3(
-                self.events.data, D, peak_onset_idx, peak_threh, np.sign(fitPars[2])
+                self.events.data, D, peak_onset_idx, peak_threh, np.sign(fitPars[3])
             )
             self.events.peakIndex = peak_idx  ## the actual peak index auto detected
             self.events.peakStart = [peak_onset_idx[j] for j in selected_index]
