@@ -3773,8 +3773,16 @@ class MainWindow(QtWidgets.QMainWindow):
         import pyabf
         abf = pyabf.ABF(abf_file)
         self.currentPulseTree.stimUnit = abf.dacUnits[0]
+        if 'n' in self.currentPulseTree.stimUnit.lower():
+            sfactor = 1000
+        elif 'p' in self.currentPulseTree.stimUnit.lower():
+            sfactor = 1
+        else:
+            print('current unit not clear!')
+            sfactor = 1
         stim = pyabf.waveform.EpochTable(abf, chanId).getEpochWaveformsBySweep(abf)
         time = abf.sweepX
+        
         stimSweeps = pyabf.waveform.EpochTable(abf, chanId).getEpochWaveformsBySweep(abf)
         stimInfo = []
         for idx, sswp1 in enumerate(stimSweeps):
@@ -3789,7 +3797,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 {
                     "start": stim_start,
                     "end": stim_end,
-                    "amplitude": stim[idx[1] - 100],
+                    "amplitude": stim[idx[1] - 100]*sfactor,
                     "Vholding": stim[0],
                     "sampleInteval": 1 / abf.sampleRate,
                 },

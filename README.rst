@@ -40,13 +40,21 @@ PatchView integrates multiple open-source tools (see credit page) and wrap them 
 Thus users can perform most analysis quickly for the data collected in a typical patch-clamp experiment without installing Python and 
 these tools or writing any Python scripts.
 
-* Importing both Heka data and Axon Instruments data. Exporting to Python pickle file or NWB (Neurodata Without Borders) file format.
+* Importing both Heka data and Axon Instruments data (Both ABF1 and ABF2). Exporting to Python pickle file or NWB (Neurodata Without Borders) file format.
 * Visualizing single and multiple traces with zoom, pan operations.
 * Automatically sorting experiments data according to predefined labels.
 * Performing analysis on intrinsic membrane properties, action potential detection, firing pattern analysis.
 * Synaptic connection analysis.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
+To installing PatchView
+--------------------------
+.. code-block:: bash
+
+        pip install git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
+        pip install patchview
+
+More details, please refer to the `Installation <https://patchview.readthedocs.io/en/latest/installation.html>`_ page.
 
 Citation
 ---------

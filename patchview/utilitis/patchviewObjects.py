@@ -701,6 +701,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
         and add items into the GUI tree to allow browsing.
         """
         r = self.abf  ## root
+        
         self.filetype = ".abf"
         self.dat_file = self.frame.currentPulseTree.dat_file
 
@@ -709,6 +710,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
             return
         self.frame.parameters["fs"] = r.get_signal_sampling_rate()
         metaInfo = r._axon_info  ## more information in lit
+        isABF2 = metaInfo["fFileVersionNumber"] >=2.0
         self.abf.yUnits = r.header["signal_channels"]["units"][0]  ## 'mV' for signal
         self.abf.xUnits = "s"
         nBlock = r.header["nb_block"]  ## could have multiple blocks
@@ -740,7 +742,7 @@ class PulView(pg.QtWidgets.QTreeWidget):
                 segment.setExpanded(True)
                 segment.index = [0, b, seg]
                 block.addChild(segment)
-        try:
+        if isABF2: # for ABF >=2
             rawP = r.read_raw_protocol()
             stimChanIdx = 0  ## channel index where stimuli is applied to
             if len(rawP[0]) > 0:
@@ -753,11 +755,27 @@ class PulView(pg.QtWidgets.QTreeWidget):
                 self.abf_stimData = stimData
                 self.abf_stimTime = np.arange(nSamples) / r.get_signal_sampling_rate()
                 self.abf_stimUnit = rawP[2][stimChanIdx]  ## 'pA'
-        except:
-            self.abf_stimOn = False
-            self.abf_stimData = None
-            self.abf_stimUnit = None
-            print("spontaneous events!")
+        else:
+            print('reading ABF1!')
+            import pyabf
+            abf = pyabf.ABF(self.dat_file)
+            stimSweeps = pyabf.waveform.EpochTable(abf, 0).getEpochWaveformsBySweep(abf)
+            if len(stimSweeps) <=1:
+                self.abf_stimOn = False
+                self.abf_stimData = None
+                self.abf_stimUnit = None
+                print("spontaneous events!")
+            else:
+                stim  = stimSweeps[0].getWaveform()
+                nSamples = stim.shape[0]
+                stimData = np.zeros((nSamples, len(stimSweeps)))
+                for j, s in enumerate(stimSweeps):
+                    stimData[:, j] = s.getWaveform()
+                self.abf_stimOn = True
+                self.abf_stimTime = np.arange(nSamples) / abf.sampleRate
+                self.abf_stimData = stimData
+                self.abf_stimUnit = abf.dacUnits[0]
+            
 
     def get_plot_params(self):
         """
