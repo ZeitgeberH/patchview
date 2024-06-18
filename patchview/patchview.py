@@ -102,7 +102,7 @@ from appdirs import *
 
 patchview_dir, this_filename = os.path.split(__file__)
 appname = "Patchview"
-__version__ = "0.3.2"
+__version__ = "0.3.6"
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -2437,8 +2437,6 @@ class MainWindow(QtWidgets.QMainWindow):
         deltD = np.median(np.diff(self.events.data))
         peak_nSD = pv["Peak parameters for raw trace"][1]["Peak Threshold (stdev)"][0]
         peak_threh = raw_baseline + peak_nSD * np.sign(fitPars[3]) * np.std(data_)
-        print(f"sd: {peak_nSD}, pars: {fitPars}")
-        print(f"peak threshold: {peak_threh},{np.sign(fitPars[3])}")
         try:
             p0.removeItem(self.events.threholdLine_raw)  ## removing the old line
         except:
@@ -2729,7 +2727,7 @@ class MainWindow(QtWidgets.QMainWindow):
             rmSpks = False
 
         ## read data
-        time, data = self.extractSingleSeries_ABF(series_index)
+        time, data = self.extractSingleSeries_ABF(series_index, scalingFactor=True)
         nSweep = data.shape[1]
         data = data.reshape(
             (np.product(data.shape),), order="F"
@@ -3771,6 +3769,35 @@ class MainWindow(QtWidgets.QMainWindow):
         self.parameter_Tab.setData(data)
 
     #        self.parameter_Tab.show()
+    def extractStimData_ABF_v1(self, abf_file, chanId=0, idx0=936, idx1=40936):
+        import pyabf
+        abf = pyabf.ABF(abf_file)
+        self.currentPulseTree.stimUnit = abf.dacUnits[0]
+        stim = pyabf.waveform.EpochTable(abf, chanId).getEpochWaveformsBySweep(abf)
+        time = abf.sweepX
+        stimSweeps = pyabf.waveform.EpochTable(abf, chanId).getEpochWaveformsBySweep(abf)
+        stimInfo = []
+        for idx, sswp1 in enumerate(stimSweeps):
+            stim  = sswp1.getWaveform()
+            stim_diff = np.diff(stim)
+            idx = np.argwhere(stim_diff != 0).flatten().tolist()
+            if len(idx)==0:
+                idx = [idx0, idx1]
+            stim_start, stim_end = idx
+            stim_ = [
+                [],
+                {
+                    "start": stim_start,
+                    "end": stim_end,
+                    "amplitude": stim[idx[1] - 100],
+                    "Vholding": stim[0],
+                    "sampleInteval": 1 / abf.sampleRate,
+                },
+                [],
+            ]
+
+            stimInfo.append(stim_)
+        return stimInfo
 
     def extractStimData_ABF(self):
         rawP = self.currentPulseTree.abf.read_raw_protocol()
@@ -3806,7 +3833,7 @@ class MainWindow(QtWidgets.QMainWindow):
             stimInfo.append(stim_)
         return stimInfo
 
-    def extractSingleSeries_ABF(self, selIdx):
+    def extractSingleSeries_ABF(self, selIdx,scalingFactor=False):
         block = self.currentPulseTree.abfBlocks[selIdx[1]]  ## choose the block selected
         ## loops through all the sweeps.
         nSweep = len(block.segments)
@@ -3815,10 +3842,12 @@ class MainWindow(QtWidgets.QMainWindow):
         for idx, seg in enumerate(block.segments):  # enumerate(block.segments):
             data[:, idx] = seg.analogsignals[0].transpose()[0]
         time = np.arange(nSamples) / self.parameters["fs"]
+  
         if 'm' in self.currentPulseTree.abf.yUnits.lower():
             sfactor = 1e3
         elif 'p' in self.currentPulseTree.abf.yUnits.lower():
             sfactor = 1e12
+  
         return time, data/sfactor  ## convert it back to Volt for downstream analaysis
 
     def extractSingleSeries(self, sel):
@@ -4149,7 +4178,6 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 fpChanIdx = 0
             data = np.squeeze(data[:,:,fpChanIdx])
-            print('data shape:', data.shape)
             srate = metaInfo['recording_rate']
             stimInfo = []
             for i in range(nSweeps):
@@ -4174,7 +4202,6 @@ class MainWindow(QtWidgets.QMainWindow):
             start_latency,
         ) = self.getEphySpikePars()
         ## Here we plug in all the available parameters
-        ##
         self.EphyFeaturesObj = extraEhpys_PV.extraEphys(
             time,
             data,
@@ -5768,7 +5795,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.currentPulseTree.invisibleRootItem()
             )
             self.parameters["fs"] = self.currentPulseTree.abf.get_signal_sampling_rate()
-            self.currentPulseTree.abf_stimInfo = self.extractStimData_ABF()
+            if self.currentPulseTree.abf._axon_info["fFileVersionNumber"] >=2.0:
+                print('ABF2 file')
+                self.currentPulseTree.abf_stimInfo = self.extractStimData_ABF()
+            else:
+                print('ABF file version < 2')
+                self.currentPulseTree.abf_stimInfo = self.extractStimData_ABF_v1(dat_file)
         elif ext == '.nwb':
             # self.currentPulseTree.pvEphy = dandiNWB(dat_file) # how to make this more general?
             self.currentPulseTree.pvEphy = self.createPVEphyInstance(dat_file, self.getNWBClass()) # how to make this more general?
