@@ -3774,9 +3774,9 @@ class MainWindow(QtWidgets.QMainWindow):
         abf = pyabf.ABF(abf_file)
         self.currentPulseTree.stimUnit = abf.dacUnits[0]
         if 'n' in self.currentPulseTree.stimUnit.lower():
-            sfactor = 1000
+            sfactor = 1000 
         elif 'p' in self.currentPulseTree.stimUnit.lower():
-            sfactor = 1
+            sfactor = 1 # default pA
         else:
             print('current unit not clear!')
             sfactor = 1
@@ -7143,10 +7143,13 @@ class MainWindow(QtWidgets.QMainWindow):
             waves = np.zeros((after_ + before_, len(peaks)))
             waves_dvdt = np.zeros((after_ + before_, len(peaks)))
             waveTime = np.arange(-before_, after_) / sampleRate * 1e3
+            max_sample = len(v_filtered)
             for j, p in enumerate(peaks):
-                start_index = p - before_
-                end_index = p + after_
-                # print(start_index, end_index, sweepCount)
+                start_index = int(p - before_)
+                end_index = int(p + after_)
+                if start_index < 0 or end_index > max_sample:
+                    continue
+                print(start_index, end_index)
                 waves[:, j] = v_filtered[start_index:end_index]
                 waves_dvdt[:, j] = dvdt1[start_index:end_index]
         else:
@@ -7419,6 +7422,9 @@ class MainWindow(QtWidgets.QMainWindow):
             mplWidget.clf()
             plotWidget2.clear()
             return
+        else:
+            peaks = [int(p) for p in peaks]
+            threhold_index = [int(p) for p in threhold_index]
         if mplWidget == None:  ## pure matplotlib
             fig = MATPLT.figure(figsize=(10, 10))
             fig.canvas.set_window_title(title)

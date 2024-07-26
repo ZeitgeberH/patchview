@@ -158,7 +158,7 @@ fp_analysis_spikeDetection = [
                 "name": "peak voltage (min=-30;max=150)",
                 "type": "float",
                 "value": -20.0,
-                "limits": (-30.0, 150.0),
+                "limits": (-50.0, 150.0),
                 "default": -20.0,
                 "siPrefix": True,
                 "suffix": "mV",
