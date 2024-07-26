@@ -155,10 +155,10 @@ fp_analysis_spikeDetection = [
                 "suffix": "mV",
             },
             {
-                "name": "peak voltage (min=-30;max=150)",
+                "name": "peak voltage (min=-100;max=150)",
                 "type": "float",
                 "value": -20.0,
-                "limits": (-50.0, 150.0),
+                "limits": (-100.0, 150.0),
                 "default": -20.0,
                 "siPrefix": True,
                 "suffix": "mV",

@@ -4796,6 +4796,8 @@ class MainWindow(QtWidgets.QMainWindow):
             stimChanID = stimChanLabels[
                 dat_file_idx
             ]  # self.searchForStimchan(bundle.getSeriesLabel(sel)) #, seriesIdx0)
+            if stimChanID == None:
+                stimChanID = 1
             time_stim, stimData, stimInfo = bundle.getStim(
                 sel + [0]
             )  ## assume only 1 channel is stimulating
@@ -4819,7 +4821,7 @@ class MainWindow(QtWidgets.QMainWindow):
         gs = self.splitViewTab_connection.matplotViews[
             "Average traces"
         ].figure.add_gridspec(nRow + 1, nCol)
-
+        print('grid spec', nRow+1, nCol)
         axes = []
         nodeColor = []
         arrowStyl = []
@@ -4842,6 +4844,8 @@ class MainWindow(QtWidgets.QMainWindow):
             stimChanID = stimChanLabels[
                 dat_file_idx
             ]  # self.searchForStimchan(bundle.getSeriesLabel(sel)) #, seriesIdx0)
+            if stimChanID == None:
+                stimChanID = 1
             _, _, stimInfo = bundle.getStim(
                 sel + [0]
             )  ## assume only 1 channel is stimulating
@@ -4859,12 +4863,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 meanCorrelation,
             ) = allDats[dat_file_idx]
             for idx, j in enumerate(significantTest):
-                nSig_count += 1
                 if idx == stimChanID - 1:
                     stimData = avg2[:, idx] * 1000.0
                 if (
                     j == 1 and idx != stimChanID - 1
-                ):  ## do not iinclude stimulation channel itself
+                ):  ## do not include stimulation channel itself
+                    nSig_count += 1
                     df["Dat file"].append(bundle.fileName)
                     df["SerieIdx"].append(sel)
                     df["Target Chan"].append(idx + 1)
@@ -4935,31 +4939,44 @@ class MainWindow(QtWidgets.QMainWindow):
                     axes[pltCount].tick_params(labelbottom=False)
                     pltCount = pltCount + 1
         rowIdx = pltCount // nCol
-        plt0 = self.splitViewTab_connection.matplotViews[
-            "Average traces"
-        ].figure.add_subplot(gs[rowIdx, colIdx], sharex=axes[0])
-        axes.append(plt0)
-        axes[-1].plot(time, stimData, color="k")
-        axes[-1].spines["right"].set_visible(False)
-        axes[-1].spines["top"].set_visible(False)
-        axes[-1].set_xlabel("Time (S)")
-        edgeStyles = []
-        for e in list(G.edges):
-            if edges[e] < 0:
-                edgeStyles.append("dashed")
-            else:
-                edgeStyles.append("solid")
-
-        self.splitViewTab_connection.matplotViews["Average traces"].draw()
-        self.splitViewTab_connection.matplotViews[
-            "Average traces"
-        ].figure.tight_layout()
         self.splitViewTab_connection.tables["Detected connections"].clear()
+        print('Total number of significant connections detected: ',nSig_count)
+        edgeStyles = []
+        if len(axes) >= 1:
+            plt0 = self.splitViewTab_connection.matplotViews[
+                "Average traces"
+            ].figure.add_subplot(gs[rowIdx, colIdx], sharex=axes[0])
+            axes.append(plt0)
+            axes[-1].plot(time, stimData, color="k")
+            axes[-1].spines["right"].set_visible(False)
+            axes[-1].spines["top"].set_visible(False)
+            axes[-1].set_xlabel("Time (S)")
+            
+            for e in list(G.edges):
+                if edges[e] < 0:
+                    edgeStyles.append("dashed")
+                else:
+                    edgeStyles.append("solid")
+
+            self.splitViewTab_connection.matplotViews["Average traces"].draw()
+            self.splitViewTab_connection.matplotViews[
+                "Average traces"
+            ].figure.tight_layout()
+            self.visualizingConnectionsGraph(G, colorMap, edgeStyles)
+        else:
+            df["Dat file"].append('No significant connection detected')
+            df["SerieIdx"].append([])
+            df["Source Chan"].append([])
+            df["Target Chan"].append([])
+            df["Baseline(mV)"].append([])
+            df["Peak value(mV)"].append([])
+            df["Delta(mV)"].append([])
+            df["Delay(mS)"].append([])
+            df["Trial consistency"].append([])
         df = pd.DataFrame(df)
         self.updateConnectionTable(
             df
         )  ## update connection table for significant connections
-        self.visualizingConnectionsGraph(G, colorMap, edgeStyles)
         return G, colorMap, edgeStyles
 
     def getNodePositions(self):
