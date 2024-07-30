@@ -166,7 +166,7 @@ class FileView(pg.QtWidgets.QTreeView):
             for sliceN in sliceNumber:
                 items.append(sliceName + sliceN)
             print("Unique slices found:")
-            print(items)
+            #print(items)
             sliceName, ok = QtWidgets.QInputDialog.getItem(
                 self, "Input Dialog", "choose slice:", items, 0, False
             )

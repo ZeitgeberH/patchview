@@ -3382,7 +3382,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # return , (bin_edges[bindex]+ M)*0.4
         # x = data[(data > data.min()*0.6) & (data < data.max()*0.6)]
         # m = np.mean(x)
-        print(m, nSTD, std0)
+        #print(m, nSTD, std0)
         t = m + nSTD * std0
         return m, t, std0
 
@@ -4775,9 +4775,6 @@ class MainWindow(QtWidgets.QMainWindow):
         nSig = self.splitViewTab_connection.tables[
             "Detected connections"
         ].rowCount()  ## number of significant traces (estimated from connection table)
-        print("nsig", nSig)
-
-        print("nsig " + str(nSig))
         # print(data.shape[1])
 
         self.splitViewTab_connection.matplotViews["Average traces"].figure.clear()
@@ -4821,7 +4818,7 @@ class MainWindow(QtWidgets.QMainWindow):
         gs = self.splitViewTab_connection.matplotViews[
             "Average traces"
         ].figure.add_gridspec(nRow + 1, nCol)
-        print('grid spec', nRow+1, nCol)
+        # print('grid spec', nRow+1, nCol)
         axes = []
         nodeColor = []
         arrowStyl = []
@@ -4929,7 +4926,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     #                    axes[j].legend("Ch {:d}  p={:.2f}".format(j+1, p), frameon=False, fancybox = False, numpoints = 6)
                     # axes[j].set_title("Ch {:d}  p={:.2f}".format(j+1, p), fontsize = 8)
                     axes[pltCount].set_title(
-                        "Ch {:d} -> Ch {:d}".format(stimChanID, idx + 1), fontsize=10
+                        "Series {:d}, Ch {:d} -> Ch {:d}".format(sel[1]+1, stimChanID, idx + 1), fontsize=10
                     )
                     axes[pltCount].spines["right"].set_visible(False)
                     axes[pltCount].spines["top"].set_visible(False)
@@ -6934,7 +6931,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 0
             ]
             min_peak = pv["Spike detection parameters"][1][
-                "peak voltage (min=-30;max=150)"
+                "peak voltage (min=-100;max=150)"
             ][0]
             thresh_frac = pv["Spike detection parameters"][1][
                 "thresh_frac (min=0.02;max=0.08)"
@@ -6960,7 +6957,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 start_latency,
             )
         except:
-            return (None,None,None,None,None,None,None,None)
+            return (None,None,None,None,None,None,None,None, None)
 
     def getSingleTraceFeature_ABF(self, v, t, seriesIdx):
         self.updateUserParamters()
@@ -6973,7 +6970,7 @@ class MainWindow(QtWidgets.QMainWindow):
         end = (
             stimInfo[sweepIdx][1]["end"] * stimInfo[sweepIdx][1]["sampleInteval"]
         )  ## stimuli end
-        print("start, end", start, end)
+        #print("start, end", start, end)
         vhold = stimInfo[sweepIdx][1]["Vholding"]
         curr = stimInfo[sweepIdx][1]["amplitude"]
         sampleRate = 1 / stimInfo[sweepIdx][1]["sampleInteval"]
@@ -7166,7 +7163,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 end_index = int(p + after_)
                 if start_index < 0 or end_index > max_sample:
                     continue
-                print(start_index, end_index)
+                #print(start_index, end_index)
                 waves[:, j] = v_filtered[start_index:end_index]
                 waves_dvdt[:, j] = dvdt1[start_index:end_index]
         else:
@@ -7473,7 +7470,7 @@ class MainWindow(QtWidgets.QMainWindow):
             axes[0].plot(t, v, "r", linewidth=2.5, alpha=0.6, zorder=10)
             peakHeight_threhold = self.splitViewTab_FP.getParTreePars(
                 "Spike detection"
-            )["Spike detection parameters"][1]["peak voltage (min=-30;max=150)"][0]
+            )["Spike detection parameters"][1]["peak voltage (min=-100;max=150)"][0]
             axes[0].axhline(y=peakHeight_threhold, color="r", linestyle="--")
 
             axes[0].title.set_text(title)
