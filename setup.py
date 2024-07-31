@@ -40,9 +40,6 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 3",
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         "Operating System :: OS Independent",
     ],
@@ -61,7 +58,7 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/zeitgeberH/patchview',
-    version = "0.3.6",
+    version = "0.3.7",
     zip_safe=False,
     entry_points={
         'gui_scripts': [
