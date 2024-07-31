@@ -47,7 +47,7 @@ these tools or writing any Python scripts.
 * Synaptic connection analysis.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
-To install PatchView from source
+To install PatchView from PyPI
 ---------------------------------
 It is recommended to install Patchview in an virtual enviroment with Python3.10+. After activating your virtual environment, run this command in your terminal:
 
