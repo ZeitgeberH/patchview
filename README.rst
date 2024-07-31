@@ -47,8 +47,10 @@ these tools or writing any Python scripts.
 * Synaptic connection analysis.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
-To installing PatchView
---------------------------
+To install PatchView from source
+---------------------------------
+It is recommended to install Patchview in an virtual enviroment with Python3.10+. After activating your virtual environment, run this command in your terminal:
+
 .. code-block:: bash
 
         pip install git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
