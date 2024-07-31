@@ -102,7 +102,7 @@ from appdirs import *
 
 patchview_dir, this_filename = os.path.split(__file__)
 appname = "Patchview"
-__version__ = "0.3.6"
+__version__ = "0.3.7"
 
 class MainWindow(QtWidgets.QMainWindow):
     """
