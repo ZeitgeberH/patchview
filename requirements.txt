@@ -23,7 +23,7 @@ pyYAML
 python-dateutil
 seaborn
 pytz
-scipy
+scipy<1.13
 pandas
 matplotlib
 pycairo

@@ -1173,10 +1173,13 @@ class StimTree(TreeNode):
 
 def datTime2RealTime(tc):
     """Convert from timestamp to human-readable time"""
+    MAX_TIMESTAMP = 2147483647  # This is the maximum value for a 32-bit signed integer
     tc = tc - 1580970496
     if tc < 0:
         tc = tc + 4294967296
     tc = tc + 9561652096
+    if tc > MAX_TIMESTAMP:
+        tc = tc % (MAX_TIMESTAMP + 1)
     T_hsa = datetime.datetime.utcfromtimestamp(tc) - datetime.timedelta(134774)
     return T_hsa
 
