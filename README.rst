@@ -47,6 +47,9 @@ these tools or writing any Python scripts.
 * Synaptic connection analysis.
 * Visualizing and quantification of neuron's morphological reconstruction from Neurolucida
 
+For Windows user
+-----------------
+Download zip file from `latest release <https://github.com/ZeitgeberH/patchview/releases>`_. Unzip it, double click Patchview excutable file. 
 
 To install PatchView from PyPI
 ---------------------------------
@@ -57,7 +60,7 @@ It is recommended to install Patchview in an virtual enviroment with Python3.10+
         pip install git+https://github.com/ZeitgeberH/NeuroM@patchview#egg=NeuroM git+https://github.com/ZeitgeberH/dictdiffer#egg=dictdiffer git+https://github.com/jeremysanders/pyemf3#egg=pyemf3
         pip --no-cache-dir install patchview
 
-More details, please refer to the `Installation <https://patchview.readthedocs.io/en/latest/installation.html>`_ page.
+More details or documentation for installation from source, please refer to the `Installation <https://patchview.readthedocs.io/en/latest/installation.html>`_ page.
 
 Citation
 ---------
