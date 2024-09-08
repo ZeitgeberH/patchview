@@ -3891,7 +3891,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 ][
                     seriesIdx[3]
                 ]  ## get trace meta information
-                time, data[:, sweep] = self.extractSingleTrace(trace, seriesIdx)
+                # time, data[:, sweep] = self.extractSingleTrace(trace, seriesIdx)
+                time, data_ = self.extractSingleTrace(trace, seriesIdx)
+                if len(data_)==data.shape[0]:
+                    data[:, sweep] = data_
+                else:
+                    print('Data size mismatch')
+                    continue
                 (
                     stimTime,
                     stimData[:, sweep],

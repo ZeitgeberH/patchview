@@ -1045,7 +1045,7 @@ Morphor_parameters = [
             {"name": "Soma", "type": "color", "value": "r"},
             ],
             },
-            {"name": "Morphology only", "type": "bool", "value": True},
+            {"name": "Morphology only", "type": "bool", "value": False},
             {"name": "Show title", "type": "bool", "value": False},
             {"name": "Use full range for density plot", "type": "bool", "value": True},
             {"name": "Show color bar for density plot", "type": "bool", "value": True},
