@@ -53,7 +53,8 @@ Download zip file from `latest release <https://github.com/ZeitgeberH/patchview/
 
 To install PatchView from PyPI
 ---------------------------------
-It is recommended to install Patchview in an virtual enviroment with Python3.10+. After activating your virtual environment, run this command in your terminal:
+It is recommended to install Patchview in an virtual enviroment with Python3.10 (Python version >3.10 is not compatible with PySide2, which Patchview currently use)
+After activating your virtual environment, run this command in your terminal:
 
 .. code-block:: bash
 

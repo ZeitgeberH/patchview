@@ -31,3 +31,4 @@ scikit-image
 morphio
 scikit-learn
 numpy>=1.22,<1.24
+hdmf<4.0
