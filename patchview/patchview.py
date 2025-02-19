@@ -1763,7 +1763,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     df.columns = header
                     df.insert(0, "Time", T)
                     with open(fileName, "w") as f:
-                        df.to_csv(f, header=True, line_terminator="\n")
+                        df.to_csv(f, header=True, lineterminator="\n")
 
     def exportFile(self, title=None, defaultName=None, extension="all files (*.*)"):
         fileName = QtWidgets.QFileDialog.getSaveFileName(
@@ -1861,14 +1861,19 @@ class MainWindow(QtWidgets.QMainWindow):
             wl = (
                 self.events.upstroke_samples + self.events.downstroke_samples
             )  ## window length
-            events_waveforms = np.zeros((len(event_peakIdxs), wl))
+            events_waveforms = np.zeros((len(event_peakIdxs), wl))           
             for j, peakIdx in enumerate(event_peakIdxs):
                 idx1 = peakIdx - self.events.upstroke_samples
                 idx2 = peakIdx + self.events.downstroke_samples
-                events_waveforms[j, :] = self.events.data[idx1:idx2]
+                if idx1 <0:
+                    idx1 = 0
+                if idx2 > len(self.events.data):
+                    idx2 = len(self.events.data)-1
+                events_waveforms[j,:]=self.events.data[idx1:idx2]
             T = (
                 self.events.time[idx1:idx2] - self.events.time[onset_idx[j]]
             )  ## aligned at onset
+
             return events_waveforms, T
         else:
             return [], []
@@ -1876,6 +1881,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def event_fitEachEvent(self):
         events_waveforms, T = self.event_extractWaveforms()
         if not isinstance(events_waveforms, list):
+            print('fitting data')
             fitSlopes = []
             with pg.ProgressDialog(
                 "linear fit for event onset",
