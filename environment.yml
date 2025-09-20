@@ -5,6 +5,7 @@ dependencies:
   - pip=21.0.1
   - python>=3.8
   - pip:
+    - hdm<0.4
     - pandas
     - matplotlib
     - scikit-image
@@ -25,4 +26,5 @@ dependencies:
     - future==0.18.2
     - pyYAML==6.0
     - numpy>=1.22,<1.24
+
     - pyabf
