@@ -514,19 +514,14 @@ class MainWindow(QtWidgets.QMainWindow):
         wlen_pre = int(0.01 * self.parameters["fs"])
         event_peakIdxs = self.events.peakIndex
         if len(event_peakIdxs) > 0:
-            peakIdx = event_peakIdxs[0]
-            wTime = (
-                self.events.time[peakIdx - prePeakW : peakIdx + afterPeakW]
-                - self.events.time[peakIdx]
-            )  ## align at peak
+            wTime = np.arange(-prePeakW, afterPeakW) / self.parameters["fs"]
             wdata = np.zeros((len(wTime), len(event_peakIdxs)))
             rmColsIdx = []
             for idx, peakIdx in enumerate(event_peakIdxs):
-                vv = np.squeeze(
-                    self.events.data_raw[peakIdx - prePeakW : peakIdx + afterPeakW]
-                )
-                if len(vv) == wdata.shape[0]:
-                    wdata[:, idx] = vv
+                if  (peakIdx - prePeakW) >=0 and (peakIdx + afterPeakW) <= len(self.events.data_raw):              
+                    wdata[:, idx] = np.squeeze(
+                        self.events.data_raw[peakIdx - prePeakW : peakIdx + afterPeakW]
+                    )
                 else:
                     rmColsIdx.append(idx)  ## remove non-valid columns
             if len(rmColsIdx) > 0:
